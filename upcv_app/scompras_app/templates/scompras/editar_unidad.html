@@ -1,0 +1,152 @@
+{% extends 'scompras/base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Cargar jQuery -->
+<script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<!-- Cargar Calendar js -->
+<script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/js/datatable/datatables/datatable.custom.js' %}"></script>
+
+<div class="page-body">
+  <div class="container-fluid">
+    <div class="page-title">
+      <div class="row">
+        <div class="col-6">
+          <h4 class="card-title mb-0">{% if form.instance.pk %}Editar Unidad{% else %}Crear Unidad{% endif %}</h4>
+        </div>
+        <div class="col-6">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="index.html">
+                <svg class="stroke-icon">
+                  <use href="../assets/svg/icon-sprite.svg#stroke-home"></use>
+                </svg></a></li>
+            <li class="breadcrumb-item">Dashboard</li>
+            <li class="breadcrumb-item active">Unidad</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container-fluid starts-->
+  <div class="container-fluid">
+    <div class="edit-profile">
+      <div class="row">
+        <div class="col-xl-12">
+          <div class="card">
+            <div class="card-header">
+              <!-- Título opcional -->
+              <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editarUnidadModal">
+                {% if form.instance.pk %}Editar Unidad{% else %}Crear Unidad{% endif %}
+              </button>
+            </div>
+            <div class="card-body">
+              <!-- Mostramos los mensajes de éxito o error si existen -->
+              {% if messages %}
+                <ul>
+                  {% for message in messages %}
+                    <li class="message">{{ message }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+              {% if form.errors %}
+                <div class="alert alert-danger">
+                  <ul>
+                    {% for field, errors in form.errors.items %}
+                      <li><strong>{{ field }}:</strong> {{ errors|join:', ' }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              <!-- Tabla para mostrar las unidades creadas -->
+              <div class="mt-4">
+                <h5>Unidades Creadas</h5>
+                <div class="table-responsive custom-scrollbar">
+                  <table class="display" id="basic-9">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Símbolo</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for unidad in unidades %}
+                        <tr>
+                          <td>{{ unidad.id }}</td>
+                          <td>{{ unidad.nombre }}</td>
+                          <td>{{ unidad.simbolo }}</td>
+                          <td>
+                            <a href="{% url 'scompras:editar_unidad' unidad.id %}" class="btn btn-primary btn-sm">Editar</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Símbolo</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Container-fluid Ends-->
+
+  <!-- Modal para Editar Unidad -->
+  <div class="modal fade" id="editarUnidadModal" tabindex="-1" aria-labelledby="editarUnidadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editarUnidadModalLabel">Editar Unidad</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Formulario para editar una unidad -->
+          <form method="POST">
+            {% csrf_token %}
+            
+            <div class="row">
+              <!-- Columna 1 -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.nombre.id_for_label }}">Nombre</label>
+                  {{ form.nombre }}
+                </div>
+              </div>
+
+              <!-- Columna 2 -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.simbolo.id_for_label }}">Símbolo</label>
+                  {{ form.simbolo }}
+                </div>
+              </div>
+            </div>
+            <br>
+
+            <div class="form-footer text-end">
+              <button class="btn btn-primary" type="submit">
+                Actualizar Unidad
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'scompras/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- Cargar jQuery -->
+<script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<!-- Cargar DataTables js -->
+<script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'assets/js/datatable/datatables/datatable.custom.js' %}"></script>
+
+<div class="page-body">
+  <div class="container-fluid">
+    <div class="page-title">
+      <div class="row">
+        <div class="col-6">
+          <h4 class="card-title mb-0">{{ departamento.nombre }}</h4>
+        </div>
+        <div class="col-6">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a href="{% url 'scompras:lista_departamentos' %}">
+                <svg class="stroke-icon">
+                  <use href="{% static 'assets/svg/icon-sprite.svg#stroke-home' %}"></use>
+                </svg>
+              </a>
+            </li>
+            <li class="breadcrumb-item">Dashboard</li>
+            <li class="breadcrumb-item active">Solicitud de Compras</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de formulario de solicitud -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Nueva Solicitud de Compra</h5>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                {{ form.descripcion.label_tag }}
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="text-danger">{{ form.descripcion.errors }}</div>
+                {% endif %}
+              </div>
+              <button type="submit" class="btn btn-success mt-2">Enviar Solicitud</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección de historial de solicitudes -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Solicitudes Anteriores</h5>
+          </div>
+          <div class="card-body">
+            {% if solicitudes %}
+              <ul class="list-group">
+                {% for solicitud in solicitudes %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</strong><br>
+                      {{ solicitud.descripcion|truncatewords:12 }}
+                    </div>
+                    <span class="badge 
+                      {% if solicitud.aprobada %}
+                        bg-success
+                      {% else %}
+                        bg-warning text-dark
+                      {% endif %}
+                    ">
+                      {% if solicitud.aprobada %}Aprobada{% else %}Pendiente{% endif %}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted">No hay solicitudes registradas.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
