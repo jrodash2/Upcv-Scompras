@@ -10,6 +10,7 @@
 
 <div class="page-body">
   <div class="container-fluid">
+    <!-- Encabezado -->
     <div class="page-title">
       <div class="row">
         <div class="col-6">
@@ -31,85 +32,135 @@
       </div>
     </div>
 
-    <!-- FORMULARIO DE NUEVA SOLICITUD -->
+    <!-- Contenido principal -->
     <div class="row mt-4">
-      <div class="col-md-5">
-        <div class="card">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Nueva Solicitud de Compra</h5>
+      <!-- Formulario -->
+<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
+  <div class="feature-box common-card bg-feature no-bg-hover card-hover shadow">
+          <div class="feature-icon">
+            <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="form-icon">
           </div>
-          <div class="card-body">
-            <form method="post">
-              {% csrf_token %}
-              <div class="form-group">
-                {{ form.descripcion.label_tag }}
-                {{ form.descripcion }}
-                {% if form.descripcion.errors %}
-                  <div class="text-danger">{{ form.descripcion.errors }}</div>
-                {% endif %}
-              </div>
-              <div class="form-group mt-2">
-                {{ form.monto_estimado.label_tag }}
-                {{ form.monto_estimado }}
-                {% if form.monto_estimado.errors %}
-                  <div class="text-danger">{{ form.monto_estimado.errors }}</div>
-                {% endif %}
-              </div>
+          <h5 class="text-center mb-3">Nueva Solicitud de Compra</h5>
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              {{ form.descripcion.label_tag }}
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}
+                <div class="text-danger">{{ form.descripcion.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="form-group mt-2">
+              {{ form.monto_estimado.label_tag }}
+              {{ form.monto_estimado }}
+              {% if form.monto_estimado.errors %}
+                <div class="text-danger">{{ form.monto_estimado.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="text-center">
               <button type="submit" class="btn btn-success mt-3">Enviar Solicitud</button>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
       </div>
 
-      <!-- LISTA DE SOLICITUDES EXISTENTES -->
-      <div class="col-md-7">
-        <div class="card">
-          <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Historial de Solicitudes</h5>
+      <!-- Historial de Solicitudes -->
+<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
+  <div class="feature-box common-card bg-light no-bg-hover card-hover shadow">
+          <div class="feature-icon">
+            <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="history-icon">
           </div>
-          <div class="card-body">
-            {% if solicitudes %}
-              <div class="table-responsive">
-                <table class="table table-striped" id="solicitudesTable">
-                  <thead>
+          <h5 class="text-center mb-3">Ultimas 10 Solicitudes</h5>
+          {% if solicitudes %}
+            <div class="table-responsive">
+              <table class="table table-striped" id="solicitudesTable">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Monto</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for solicitud in solicitudes %}
                     <tr>
-                      <th>Fecha</th>
-                      <th>Descripción</th>
-                      <th>Monto</th>
-                      <th>Estado</th>
+                      <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                      <td>{{ solicitud.descripcion|truncatewords:10 }}</td>
+                      <td>Q {{ solicitud.monto_estimado|floatformat:2 }}</td>
+                      <td>
+                        {% if solicitud.aprobada %}
+                          <span class="badge bg-success">Aprobada</span>
+                        {% else %}
+                          <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% endif %}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {% for solicitud in solicitudes %}
-                      <tr>
-                        <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-                        <td>{{ solicitud.descripcion|truncatewords:10 }}</td>
-                        <td>Q {{ solicitud.monto_estimado|floatformat:2 }}</td>
-                        <td>
-                          {% if solicitud.aprobada %}
-                            <span class="badge bg-success">Aprobada</span>
-                          {% else %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                          {% endif %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% else %}
-              <p class="text-muted">No hay solicitudes registradas para esta sección.</p>
-            {% endif %}
-          </div>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted text-center">No hay solicitudes registradas para esta sección.</p>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Estilos -->
+<style>
+ .card-hover:hover {
+  transform: scale(1.03);
+  transition: transform 0.3s ease;
+  z-index: 2;
+}
+
+/* Evitar cambio de color y fondo en hover para tarjetas con esta clase */
+.no-bg-hover:hover {
+  background-color: inherit !important;
+  color: inherit !important;
+}
+
+/* Evitar cambio de color en el texto h5 dentro de la tarjeta */
+.no-bg-hover:hover h5 {
+  color: inherit !important;
+}
+
+.feature-box {
+  padding: 25px;
+  border-radius: 8px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.feature-icon img {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 15px auto;
+  display: block;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+</style>
+
 <!-- Inicializar DataTables -->
 <script>
-  $(document).ready(function() {
+  $(document).ready(function () {
     $('#solicitudesTable').DataTable({
       language: {
         url: "{% static 'assets/js/datatable/datatables/spanish.json' %}"

@@ -106,3 +106,25 @@ def guardar_perfil_usuario(sender, instance, **kwargs):
         instance.perfil.save()
      
         
+
+# Modelo de Insumo (para la importación de datos desde Excel)
+class Insumo(models.Model):
+    renglon = models.IntegerField()
+    codigo_insumo = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=500)
+    caracteristicas = models.TextField(blank=True, null=True)
+    nombre_presentacion = models.CharField(max_length=500)
+    cantidad_unidad_presentacion = models.CharField(max_length=100)
+    codigo_presentacion = models.CharField(max_length=100)
+    fecha_actualizacion = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.codigo_insumo} - {self.nombre}"
+
+
+# Modelo para la fecha de insumo (para la importación de datos desde Excel)
+class FechaInsumo(models.Model):
+    fechainsumo = models.DateField()  
+
+    def __str__(self):
+        return f"{self.fechainsumo}"        

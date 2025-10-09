@@ -4,7 +4,7 @@ from django.forms import CheckboxInput, DateInput, inlineformset_factory, modelf
 from django.core.exceptions import ValidationError
 
 
-from .models import Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
+from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
 
 from django.db.models import Sum, F, Value
 from django.db.models.functions import Coalesce
@@ -237,11 +237,46 @@ class PerfilForm(forms.ModelForm):
 class SolicitudCompraForm(forms.ModelForm):
     class Meta:
         model = SolicitudCompra
-        fields = ['seccion', 'descripcion']
+        fields = ['descripcion']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Describe la solicitud',
+            }),
+        }
+
+
+
+class ExcelUploadForm(forms.Form):
+    archivo_excel = forms.FileField()
 
     def __init__(self, *args, **kwargs):
-        departamento = kwargs.pop('departamento', None)
-        super().__init__(*args, **kwargs)
-        if departamento:
-            self.fields['seccion'].queryset = Seccion.objects.filter(departamento=departamento, activo=True)
+        super(ExcelUploadForm, self).__init__(*args, **kwargs)
+        for field in self.fields.values():
+            # Si es tipo FileField, normalmente se usa 'form-control' o 'form-control-file'
+            css_class = 'form-control'
+            field.widget.attrs['class'] = field.widget.attrs.get('class', '') + f' {css_class}'
 
+class InsumoForm(forms.ModelForm):
+    class Meta:
+        model = Insumo
+        fields = ['renglon', 'codigo_insumo', 'nombre', 'caracteristicas', 
+                  'nombre_presentacion', 'cantidad_unidad_presentacion', 
+                  'codigo_presentacion', 'fecha_actualizacion']
+        widgets = {
+            'fecha_actualizacion': forms.DateTimeInput(attrs={'type': 'datetime-local'})  # Usamos el widget para una entrada de fecha y hora
+        }
+
+class FechaInsumoForm(forms.ModelForm):
+    class Meta:
+        model = FechaInsumo
+        fields = ['fechainsumo']
+        widgets = {
+            'fechainsumo': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(FechaInsumoForm, self).__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'

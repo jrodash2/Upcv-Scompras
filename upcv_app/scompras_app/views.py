@@ -8,8 +8,11 @@ from django.contrib.auth.models import Group, User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-from .form import PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
+import openpyxl
+from django.views.decorators.csrf import csrf_exempt
+import pandas as pd
+from .form import ExcelUploadForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
+from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -178,20 +181,34 @@ def lista_departamentos(request):
 
 
 
-
 @login_required
-@grupo_requerido('Departamento')
 def detalle_seccion(request, departamento_id, seccion_id):
     seccion = get_object_or_404(Seccion, pk=seccion_id, departamento__id=departamento_id)
+    user = request.user
 
-    if not UsuarioDepartamento.objects.filter(usuario=request.user, departamento=seccion.departamento).exists():
-        return render(request, 'scompras/403.html', status=403)
+    # Obtener los nombres de los grupos del usuario
+    grupos_usuario = list(user.groups.values_list('name', flat=True))
 
+    es_admin = 'Administrador' in grupos_usuario
+    es_scompras = 'scompras' in grupos_usuario
+
+    # Si no es admin ni scompras, verificar si está asignado al departamento y sección
+    if not (es_admin or es_scompras):
+        tiene_acceso = UsuarioDepartamento.objects.filter(
+            usuario=user,
+            departamento=seccion.departamento,
+            seccion=seccion
+        ).exists()
+
+        if not tiene_acceso:
+            return render(request, 'scompras/403.html', status=403)
+
+    # Manejo del formulario
     if request.method == 'POST':
         form = SolicitudCompraForm(request.POST)
         if form.is_valid():
             solicitud = form.save(commit=False)
-            solicitud.usuario = request.user
+            solicitud.usuario = user
             solicitud.departamento = seccion.departamento
             solicitud.seccion = seccion
             solicitud.save()
@@ -200,17 +217,18 @@ def detalle_seccion(request, departamento_id, seccion_id):
     else:
         form = SolicitudCompraForm()
 
-    solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')
-    secciones = seccion.departamento.secciones.filter(activo=True)  # Todas las secciones activas del departamento
+    solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')[:10]
+    secciones = seccion.departamento.secciones.filter(activo=True)
 
     context = {
         'seccion': seccion,
         'form': form,
         'solicitudes': solicitudes,
-        'secciones': secciones,  # <--- Aquí agregamos todas las secciones
+        'secciones': secciones,
     }
 
     return render(request, 'scompras/detalle_seccion.html', context)
+
 
 
 
@@ -358,7 +376,7 @@ def dahsboard(request):
 
 
 def acceso_denegado(request, exception=None):
-    return render(request, 'almacen/403.html', status=403)
+    return render(request, 'scompras/403.html', status=403)
 
 @login_required
 def detalle_departamento(request, pk):
@@ -461,3 +479,143 @@ def signin(request):
 
 
 
+
+
+def descargar_insumos_excel(request):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Insumos"
+
+    # Escribir encabezados
+    encabezados = [
+        'Renglón', 'Código de Insumo', 'Nombre', 'Características',
+        'Nombre de Presentación', 'Cantidad y Unidad de Medida de Presentación',
+        'Código de Presentación'
+    ]
+    ws.append(encabezados)
+
+    # Escribir datos
+    for insumo in Insumo.objects.all():
+        ws.append([
+            insumo.renglon,
+            insumo.codigo_insumo,
+            insumo.nombre,
+            insumo.caracteristicas,
+            insumo.nombre_presentacion,
+            insumo.cantidad_unidad_presentacion,
+            insumo.codigo_presentacion,
+
+        ])
+
+    # Preparar la respuesta HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=insumos.xlsx'
+    wb.save(response)
+    return response
+
+
+@csrf_exempt  # Si estás teniendo problemas con CSRF en peticiones Ajax, puedes usar esto temporalmente
+def insumos_json(request):
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 10))
+    search_value = request.GET.get('search[value]', '').strip()
+
+    queryset = Insumo.objects.all()
+
+    if search_value:
+        queryset = queryset.filter(
+            Q(renglon__icontains=search_value) |
+            Q(codigo_insumo__icontains=search_value) |
+            Q(nombre__icontains=search_value) |
+            Q(caracteristicas__icontains=search_value) |
+            Q(nombre_presentacion__icontains=search_value) |
+            Q(cantidad_unidad_presentacion__icontains=search_value) |
+            Q(codigo_presentacion__icontains=search_value)
+        )
+
+    total_count = Insumo.objects.count()
+    filtered_count = queryset.count()
+
+    queryset = queryset[start:start + length]
+
+    data = []
+    for insumo in queryset:
+        data.append([
+            insumo.renglon,
+            insumo.codigo_insumo,
+            insumo.nombre,
+            insumo.caracteristicas,
+            insumo.nombre_presentacion,
+            insumo.cantidad_unidad_presentacion,
+            insumo.codigo_presentacion
+        ])
+
+    return JsonResponse({
+        'draw': draw,
+        'recordsTotal': total_count,
+        'recordsFiltered': filtered_count,
+        'data': data
+    })
+
+def importar_excel(request):
+    if request.method == 'POST':
+        form = ExcelUploadForm(request.POST, request.FILES)
+        fecha_form = FechaInsumoForm(request.POST)  # Formulario para la fecha
+
+        if form.is_valid() and fecha_form.is_valid():  # Validar ambos formularios
+            archivo = request.FILES['archivo_excel']
+            df = pd.read_excel(archivo)
+
+            # Eliminar los datos anteriores
+            Insumo.objects.all().delete()
+
+            # Crear una lista para guardar los objetos que se crearán
+            nuevos_insumos = []
+
+            for _, row in df.iterrows():
+                insumo = Insumo(
+                    renglon=row['RENGLÓN'],
+                    codigo_insumo=row['CÓDIGO DE INSUMO'],
+                    nombre=row['NOMBRE'],
+                    caracteristicas=row['CARACTERÍSTICAS'],
+                    nombre_presentacion=row['NOMBRE DE LA PRESENTACIÓN'],
+                    cantidad_unidad_presentacion=row['CANTIDAD Y UNIDAD DE MEDIDA DE LA PRESENTACIÓN'],
+                    codigo_presentacion=row['CÓDIGO DE PRESENTACIÓN'],
+                    fecha_actualizacion=timezone.now()
+                )
+                nuevos_insumos.append(insumo)
+
+            # Guardar todos los nuevos insumos de una vez
+            Insumo.objects.bulk_create(nuevos_insumos)
+
+            # Aquí es donde se captura la fecha del formulario de fecha
+            fecha_in = fecha_form.save(commit=False)
+            # La fecha capturada será la fecha proporcionada por el formulario (no la actual)
+            fecha_in.fechainsumo = fecha_form.cleaned_data['fechainsumo']
+            fecha_in.save()
+
+            # Redirigir con un parámetro de sesión para pasar los últimos insumos
+            request.session['importados'] = True
+            return redirect('scompras:catalogo_insumos_view')
+    else:
+        form = ExcelUploadForm()
+        fecha_form = FechaInsumoForm()  # Iniciar el formulario de fecha
+
+    return render(request, 'scompras/importar_excel.html', {'form': form, 'fecha_form': fecha_form})
+
+
+
+def catalogo_insumos_view(request):
+    # Obtener los insumos
+    insumos = Insumo.objects.all().order_by('-fecha_actualizacion')
+    
+    # Obtener la última fecha de insumo (último registro de fechainsumo)
+    ultima_fecha_insumo = FechaInsumo.objects.last()  # Obtiene el último registro de la tabla fechainsumo
+    
+    return render(request, 'scompras/confirmacion.html', {
+        'insumos': insumos,
+        'ultima_fecha_insumo': ultima_fecha_insumo
+    })
