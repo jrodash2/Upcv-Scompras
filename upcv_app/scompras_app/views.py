@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from .form import PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import Perfil, Departamento, UsuarioDepartamento, Institucion
+from .models import Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -76,6 +76,8 @@ def editar_institucion(request):
     return render(request, 'scompras/editar_institucion.html', {'form': form})
 
 
+from django.db import IntegrityError
+
 @login_required
 @grupo_requerido('Administrador', 'scompras')
 @user_passes_test(lambda u: u.is_superuser or u.groups.filter(name='Administrador').exists())
@@ -87,16 +89,20 @@ def asignar_departamento_usuario(request):
                 form.save()
                 messages.success(request, 'Departamento asignado correctamente al usuario.')
                 return redirect('scompras:asignar_departamento')
-            except:
-                messages.error(request, 'Este usuario ya está asignado a ese departamento.')
+            except IntegrityError:
+                messages.error(request, 'Esta asignación usuario-departamento-sección ya existe.')
+        else:
+            messages.error(request, 'Por favor corrige los errores en el formulario.')
     else:
         form = UsuarioDepartamentoForm()
 
-    # Agrupar departamentos por usuario
-    asignaciones = UsuarioDepartamento.objects.select_related('usuario', 'departamento')
+    asignaciones = UsuarioDepartamento.objects.select_related('usuario', 'departamento', 'seccion')
     usuarios_con_departamentos = defaultdict(list)
     for asignacion in asignaciones:
-        usuarios_con_departamentos[asignacion.usuario].append(asignacion.departamento)
+        usuarios_con_departamentos[asignacion.usuario].append({
+            'departamento': asignacion.departamento,
+            'seccion': asignacion.seccion,
+        })
 
     context = {
         'form': form,
@@ -104,9 +110,15 @@ def asignar_departamento_usuario(request):
     }
     return render(request, 'scompras/asignar_departamento.html', context)
 
-def eliminar_asignacion(request, usuario_id, departamento_id):
+
+def eliminar_asignacion(request, usuario_id, departamento_id, seccion_id):
     if request.method == 'POST':
-        asignacion = get_object_or_404(UsuarioDepartamento, usuario_id=usuario_id, departamento_id=departamento_id)
+        asignacion = get_object_or_404(
+            UsuarioDepartamento,
+            usuario_id=usuario_id,
+            departamento_id=departamento_id,
+            seccion_id=seccion_id
+        )
         asignacion.delete()
         messages.success(request, 'Asignación eliminada correctamente.')
     else:
@@ -115,26 +127,88 @@ def eliminar_asignacion(request, usuario_id, departamento_id):
 
 
 @login_required
-def lista_departamentos(request):
-    es_departamento = request.user.groups.filter(name='Departamento').exists()
+@require_GET
+def cargar_secciones(request):
+    departamento_id = request.GET.get('departamento_id')
+    secciones = Seccion.objects.filter(departamento_id=departamento_id).values('id', 'nombre').order_by('nombre')
+    return JsonResponse(list(secciones), safe=False)
 
-    if es_departamento:
-        # Obtener todos los objetos UsuarioDepartamento vinculados al usuario
-        usuario_departamentos = UsuarioDepartamento.objects.filter(usuario=request.user)
-        # Mostrar todos los departamentos asociados a esas instancias
-        departamentos = Departamento.objects.filter(usuariodepartamento__in=usuario_departamentos)
-    else:
+def ajax_cargar_secciones(request):
+    departamento_id = request.GET.get('departamento_id')
+    secciones = Seccion.objects.filter(departamento_id=departamento_id).values('id', 'nombre')
+    secciones_list = list(secciones)
+    return JsonResponse({'secciones': secciones_list})
+
+@login_required
+def lista_departamentos(request):
+    user = request.user
+
+    # Obtener todos los grupos del usuario
+    grupos_usuario = list(user.groups.values_list('name', flat=True))
+
+    # Si es administrador, mostrar todos
+    if 'Administrador' in grupos_usuario:
         departamentos = Departamento.objects.all()
+        departamentos_usuario_ids = list(departamentos.values_list('id', flat=True))
+
+    # Si es grupo Departamento o scompras, solo los asignados
+    elif 'Departamento' in grupos_usuario or 'scompras' in grupos_usuario:
+        departamentos_usuario_ids = list(
+            UsuarioDepartamento.objects.filter(usuario=user)
+            .values_list('departamento_id', flat=True)
+            .distinct()
+        )
+        departamentos = Departamento.objects.filter(id__in=departamentos_usuario_ids)
+
+    # Si no pertenece a ningún grupo conocido, no ve nada
+    else:
+        departamentos_usuario_ids = []
+        departamentos = Departamento.objects.none()
 
     return render(request, 'scompras/lista_departamentos.html', {
         'departamentos': departamentos,
-        'es_departamento': es_departamento
+        'departamentos_usuario_ids': departamentos_usuario_ids,
+        'es_departamento': 'Departamento' in grupos_usuario,
     })
 
-def acceso_denegado(request, exception=None):
-    return render(request, 'scompras/403.html', status=403)
 
-from django.db.models import Q
+
+
+
+
+
+@login_required
+@grupo_requerido('Departamento')
+def detalle_seccion(request, departamento_id, seccion_id):
+    seccion = get_object_or_404(Seccion, pk=seccion_id, departamento__id=departamento_id)
+
+    if not UsuarioDepartamento.objects.filter(usuario=request.user, departamento=seccion.departamento).exists():
+        return render(request, 'scompras/403.html', status=403)
+
+    if request.method == 'POST':
+        form = SolicitudCompraForm(request.POST)
+        if form.is_valid():
+            solicitud = form.save(commit=False)
+            solicitud.usuario = request.user
+            solicitud.departamento = seccion.departamento
+            solicitud.seccion = seccion
+            solicitud.save()
+            messages.success(request, "Solicitud creada exitosamente.")
+            return redirect('scompras:detalle_seccion', departamento_id=departamento_id, seccion_id=seccion_id)
+    else:
+        form = SolicitudCompraForm()
+
+    solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')
+    secciones = seccion.departamento.secciones.filter(activo=True)  # Todas las secciones activas del departamento
+
+    context = {
+        'seccion': seccion,
+        'form': form,
+        'solicitudes': solicitudes,
+        'secciones': secciones,  # <--- Aquí agregamos todas las secciones
+    }
+
+    return render(request, 'scompras/detalle_seccion.html', context)
 
 
 
@@ -281,46 +355,55 @@ def dahsboard(request):
     return render(request, 'scompras/dashboard.html')
 
 
+def acceso_denegado(request, exception=None):
+    return render(request, 'almacen/403.html', status=403)
 
 @login_required
 def detalle_departamento(request, pk):
     departamento = get_object_or_404(Departamento, pk=pk)
 
-    # Verificar si el usuario pertenece al departamento (opcional)
+    # Verificar si el usuario pertenece al departamento
     if not UsuarioDepartamento.objects.filter(usuario=request.user, departamento=departamento).exists():
         return render(request, 'scompras/403.html', status=403)
+
+    # 🔎 Obtener todas las secciones del departamento
+    secciones_departamento = Seccion.objects.filter(departamento=departamento)
+
+    # 🔐 Obtener las secciones a las que el usuario tiene acceso
+    secciones_usuario_ids = UsuarioDepartamento.objects.filter(
+        usuario=request.user,
+        departamento=departamento
+    ).values_list('seccion_id', flat=True)
 
     if request.method == 'POST':
         form = SolicitudCompraForm(request.POST)
         if form.is_valid():
             solicitud = form.save(commit=False)
             solicitud.usuario = request.user
-            solicitud.departamento = departamento
+
+            # Validar acceso a la sección
+            if solicitud.seccion.id not in secciones_usuario_ids:
+                return render(request, 'scompras/403.html', status=403)
+
             solicitud.save()
             return redirect('scompras:detalle_departamento', pk=departamento.pk)
     else:
         form = SolicitudCompraForm()
 
+    solicitudes = SolicitudCompra.objects.filter(
+        seccion__departamento=departamento
+    ).order_by('-fecha_solicitud')
+
     return render(request, 'scompras/detalle_departamento.html', {
         'departamento': departamento,
+        'secciones': secciones_departamento,  # 🔄 Mostrar todas las secciones
+        'secciones_usuario_ids': list(secciones_usuario_ids),  # 🔐 IDs a los que tiene acceso
         'form': form,
-        'solicitudes': departamento.solicitudes.all().order_by('-fecha_solicitud'),
+        'solicitudes': solicitudes,
     })
 
 
 
-
-
-    return render(request, 'scompras/detalle_departamento.html', {
-        'departamento': departamento,
-        'asignaciones_agrupadas': asignaciones_agrupadas,
-        'asignaciones_detalle': asignaciones_detalle,
-        'resumen_stock': resumen_stock,
-        'tiene_acceso': tiene_acceso,
-        'es_departamento': es_departamento,
-        'departamentos': departamentos,
-        'historial_transferencias': historial_transferencias,
-    })
 
 
 def signout(request):

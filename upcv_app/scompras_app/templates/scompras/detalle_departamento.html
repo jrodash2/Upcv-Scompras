@@ -3,18 +3,14 @@
 
 {% block content %}
 
-<!-- Cargar jQuery -->
-<script src="{% static 'assets/js/jquery.min.js' %}"></script>
-<!-- Cargar DataTables js -->
-<script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
-<script src="{% static 'assets/js/datatable/datatables/datatable.custom.js' %}"></script>
-
 <div class="page-body">
   <div class="container-fluid">
+
+    <!-- Título y Breadcrumb -->
     <div class="page-title">
       <div class="row">
         <div class="col-6">
-          <h4 class="card-title mb-0">{{ departamento.nombre }}</h4>
+          <h4 class="card-title mb-0">Departamento: {{ departamento.nombre }}</h4>
         </div>
         <div class="col-6">
           <ol class="breadcrumb">
@@ -25,72 +21,72 @@
                 </svg>
               </a>
             </li>
-            <li class="breadcrumb-item">Dashboard</li>
-            <li class="breadcrumb-item active">Solicitud de Compras</li>
+            <li class="breadcrumb-item">Departamentos</li>
+            <li class="breadcrumb-item active">Detalle</li>
           </ol>
         </div>
       </div>
     </div>
 
-    <!-- Sección de formulario de solicitud -->
-    <div class="row mt-4">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Nueva Solicitud de Compra</h5>
-          </div>
-          <div class="card-body">
-            <form method="post">
-              {% csrf_token %}
-              <div class="form-group">
-                {{ form.descripcion.label_tag }}
-                {{ form.descripcion }}
-                {% if form.descripcion.errors %}
-                  <div class="text-danger">{{ form.descripcion.errors }}</div>
-                {% endif %}
-              </div>
-              <button type="submit" class="btn btn-success mt-2">Enviar Solicitud</button>
-            </form>
-          </div>
-        </div>
-      </div>
+    <!-- Secciones en tarjetas -->
+    {% if secciones %}
+      <div class="row">
+        {% for sec in secciones %}
+          <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
 
-      <!-- Sección de historial de solicitudes -->
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Solicitudes Anteriores</h5>
-          </div>
-          <div class="card-body">
-            {% if solicitudes %}
-              <ul class="list-group">
-                {% for solicitud in solicitudes %}
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
+            {% if sec.id in secciones_usuario_ids %}
+              <!-- Sección con acceso -->
+              <a href="{% url 'scompras:detalle_seccion' departamento_id=departamento.pk seccion_id=sec.pk %}" class="text-decoration-none text-dark">
+                <div class="feature-box common-card bg-feature card-hover">
+                  <div class="feature-icon">
                     <div>
-                      <strong>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</strong><br>
-                      {{ solicitud.descripcion|truncatewords:12 }}
+                      <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="feature-icon">
                     </div>
-                    <span class="badge 
-                      {% if solicitud.aprobada %}
-                        bg-success
-                      {% else %}
-                        bg-warning text-dark
-                      {% endif %}
-                    ">
-                      {% if solicitud.aprobada %}Aprobada{% else %}Pendiente{% endif %}
-                    </span>
-                  </li>
-                {% endfor %}
-              </ul>
+                  </div>
+                  <h5 class="text-center">{{ sec.nombre }}</h5>
+                </div>
+              </a>
             {% else %}
-              <p class="text-muted">No hay solicitudes registradas.</p>
+              <!-- Sección sin acceso -->
+              <div class="feature-box common-card bg-light text-muted border">
+                <div class="feature-icon">
+                  <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="feature-icon" style="opacity: 0.5;">
+                </div>
+                <h5 class="text-center">{{ sec.nombre }}</h5>
+                <p class="text-center small">Sin acceso</p>
+              </div>
             {% endif %}
+
           </div>
-        </div>
+        {% endfor %}
       </div>
-    </div>
+    {% else %}
+      <p>No hay secciones disponibles en este departamento.</p>
+    {% endif %}
 
   </div>
 </div>
+
+<style>
+  .card-hover:hover {
+    transform: scale(1.03);
+    transition: transform 0.3s ease;
+    z-index: 2;
+  }
+  .feature-box {
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .feature-icon img {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+  }
+</style>
 
 {% endblock %}

@@ -32,30 +32,45 @@ class Departamento(models.Model):
     
     def __str__(self):
         return self.nombre
+   
+    
+class Seccion(models.Model):
+    nombre = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, null=True)
+    departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='secciones')
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+
+    def __str__(self):
+        return f'{self.nombre} ({self.departamento.nombre})'
 
 
 class SolicitudCompra(models.Model):
-    departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='solicitudes')
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)  # quién hizo la solicitud
+    seccion = models.ForeignKey('Seccion', on_delete=models.CASCADE, related_name='solicitudes')
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     descripcion = models.TextField()
     fecha_solicitud = models.DateTimeField(default=timezone.now)
     aprobada = models.BooleanField(default=False)
-    
+
     def __str__(self):
-        return f'Solicitud #{self.id} - {self.departamento.nombre}'
-    
+        return f'Solicitud #{self.id} - {self.seccion.nombre}'
+
     def get_absolute_url(self):
         return reverse('scompras:detalle_solicitud', kwargs={'pk': self.pk})
+
 
 class UsuarioDepartamento(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE)
+    seccion = models.ForeignKey(Seccion, on_delete=models.CASCADE, null=True, blank=True)  # nuevo campo
 
     class Meta:
-        unique_together = ('usuario', 'departamento')
+        unique_together = ('usuario', 'departamento', 'seccion')  # ahora la combinación incluye seccion
 
     def __str__(self):
-        return f'{self.usuario.username} - {self.departamento.nombre}' 
+        return f'{self.usuario.username} - {self.departamento.nombre} - {self.seccion.nombre if self.seccion else "Sin Sección"}'
+
  
 
 class FraseMotivacional(models.Model):

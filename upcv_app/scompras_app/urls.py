@@ -28,11 +28,15 @@ urlpatterns = [
     path('departamento/editar/<int:pk>/', views.editar_departamento, name='editar_departamento'),
     path('departamentos/', views.lista_departamentos, name='lista_departamentos'),
     path('departamento/<int:pk>/', views.detalle_departamento, name='detalle_departamento'),
-   
+    path('departamento/<int:departamento_id>/seccion/<int:seccion_id>/', views.detalle_seccion, name='detalle_seccion'),
+    path('seccion/<int:pk>/', views.detalle_seccion, name='detalle_seccion'), 
+    path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
+    
+
 
     # Asignación de usuarios a departamentos
     path('asignar-usuario-departamento/', views.asignar_departamento_usuario, name='asignar_departamento'),
-    path('eliminar-asignacion/<int:usuario_id>/<int:departamento_id>/', views.eliminar_asignacion, name='eliminar_asignacion'),
+    path('eliminar-asignacion/<int:usuario_id>/<int:departamento_id>/<int:seccion_id>/', views.eliminar_asignacion, name='eliminar_asignacion'),
     path('editar_institucion/', views.editar_institucion, name='editar_institucion'),
     # Cambiar contraseña
     path('cambiar-contraseña/', auth_views.PasswordChangeView.as_view(

@@ -4,7 +4,7 @@ from django.forms import CheckboxInput, DateInput, inlineformset_factory, modelf
 from django.core.exceptions import ValidationError
 
 
-from .models import Perfil, Departamento, SolicitudCompra, UsuarioDepartamento, Institucion
+from .models import Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
 
 from django.db.models import Sum, F, Value
 from django.db.models.functions import Coalesce
@@ -196,15 +196,33 @@ class UserForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
             
-
 class UsuarioDepartamentoForm(forms.ModelForm):
+    departamento = forms.ModelChoiceField(queryset=Departamento.objects.all(), required=True)
+    seccion = forms.ModelChoiceField(queryset=Seccion.objects.none(), required=False)
+
     class Meta:
         model = UsuarioDepartamento
-        fields = ['usuario', 'departamento']
-        widgets = {
-            'usuario': forms.Select(attrs={'class': 'form-control'}),
-            'departamento': forms.Select(attrs={'class': 'form-control'}),
-        }
+        fields = ['usuario', 'departamento', 'seccion']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Añadir la clase form-control a todos los campos
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+        # Cargar queryset para secciones según departamento
+        if 'departamento' in self.data:
+            try:
+                departamento_id = int(self.data.get('departamento'))
+                self.fields['seccion'].queryset = Seccion.objects.filter(departamento_id=departamento_id).order_by('nombre')
+            except (ValueError, TypeError):
+                self.fields['seccion'].queryset = Seccion.objects.none()
+        elif self.instance.pk and self.instance.departamento:
+            self.fields['seccion'].queryset = Seccion.objects.filter(departamento=self.instance.departamento).order_by('nombre')
+        else:
+            self.fields['seccion'].queryset = Seccion.objects.none()
+
         
 class PerfilForm(forms.ModelForm):
     class Meta:
@@ -219,7 +237,11 @@ class PerfilForm(forms.ModelForm):
 class SolicitudCompraForm(forms.ModelForm):
     class Meta:
         model = SolicitudCompra
-        fields = ['descripcion']
-        widgets = {
-            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-        }
+        fields = ['seccion', 'descripcion']
+
+    def __init__(self, *args, **kwargs):
+        departamento = kwargs.pop('departamento', None)
+        super().__init__(*args, **kwargs)
+        if departamento:
+            self.fields['seccion'].queryset = Seccion.objects.filter(departamento=departamento, activo=True)
+
