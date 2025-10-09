@@ -142,34 +142,36 @@ def ajax_cargar_secciones(request):
 @login_required
 def lista_departamentos(request):
     user = request.user
-
-    # Obtener todos los grupos del usuario
     grupos_usuario = list(user.groups.values_list('name', flat=True))
 
-    # Si es administrador, mostrar todos
-    if 'Administrador' in grupos_usuario:
+    es_admin = 'Administrador' in grupos_usuario
+    es_departamento = 'Departamento' in grupos_usuario
+    es_scompras = 'scompras' in grupos_usuario
+
+    if es_admin:
+        # Admin ve todo y tiene acceso completo
         departamentos = Departamento.objects.all()
         departamentos_usuario_ids = list(departamentos.values_list('id', flat=True))
-
-    # Si es grupo Departamento o scompras, solo los asignados
-    elif 'Departamento' in grupos_usuario or 'scompras' in grupos_usuario:
+    elif es_departamento or es_scompras:
+        # Solo departamentos asignados
         departamentos_usuario_ids = list(
             UsuarioDepartamento.objects.filter(usuario=user)
             .values_list('departamento_id', flat=True)
             .distinct()
         )
         departamentos = Departamento.objects.filter(id__in=departamentos_usuario_ids)
-
-    # Si no pertenece a ningún grupo conocido, no ve nada
     else:
+        # No tiene grupo válido
         departamentos_usuario_ids = []
         departamentos = Departamento.objects.none()
 
     return render(request, 'scompras/lista_departamentos.html', {
         'departamentos': departamentos,
         'departamentos_usuario_ids': departamentos_usuario_ids,
-        'es_departamento': 'Departamento' in grupos_usuario,
+        'es_departamento': es_departamento,
+        'es_admin': es_admin,
     })
+
 
 
 
@@ -361,30 +363,39 @@ def acceso_denegado(request, exception=None):
 @login_required
 def detalle_departamento(request, pk):
     departamento = get_object_or_404(Departamento, pk=pk)
+    user = request.user
 
-    # Verificar si el usuario pertenece al departamento
-    if not UsuarioDepartamento.objects.filter(usuario=request.user, departamento=departamento).exists():
+    # Verificar si es administrador
+    es_admin = user.groups.filter(name='Administrador').exists()
+
+    # Si NO es admin, verificar si tiene asignado el departamento
+    if not es_admin and not UsuarioDepartamento.objects.filter(usuario=user, departamento=departamento).exists():
         return render(request, 'scompras/403.html', status=403)
 
-    # 🔎 Obtener todas las secciones del departamento
+    # Obtener todas las secciones del departamento
     secciones_departamento = Seccion.objects.filter(departamento=departamento)
 
-    # 🔐 Obtener las secciones a las que el usuario tiene acceso
-    secciones_usuario_ids = UsuarioDepartamento.objects.filter(
-        usuario=request.user,
-        departamento=departamento
-    ).values_list('seccion_id', flat=True)
+    # Si es admin, tiene acceso a todas las secciones
+    if es_admin:
+        secciones_usuario_ids = list(secciones_departamento.values_list('id', flat=True))
+    else:
+        # Filtrar secciones según permisos
+        secciones_usuario_ids = UsuarioDepartamento.objects.filter(
+            usuario=user,
+            departamento=departamento
+        ).values_list('seccion_id', flat=True)
 
     if request.method == 'POST':
         form = SolicitudCompraForm(request.POST)
         if form.is_valid():
             solicitud = form.save(commit=False)
-            solicitud.usuario = request.user
+            solicitud.usuario = user
 
             # Validar acceso a la sección
             if solicitud.seccion.id not in secciones_usuario_ids:
                 return render(request, 'scompras/403.html', status=403)
 
+            solicitud.departamento = departamento
             solicitud.save()
             return redirect('scompras:detalle_departamento', pk=departamento.pk)
     else:
@@ -396,12 +407,11 @@ def detalle_departamento(request, pk):
 
     return render(request, 'scompras/detalle_departamento.html', {
         'departamento': departamento,
-        'secciones': secciones_departamento,  # 🔄 Mostrar todas las secciones
-        'secciones_usuario_ids': list(secciones_usuario_ids),  # 🔐 IDs a los que tiene acceso
+        'secciones': secciones_departamento,
+        'secciones_usuario_ids': list(secciones_usuario_ids),
         'form': form,
         'solicitudes': solicitudes,
     })
-
 
 
 
