@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Institucion, Departamento, Seccion, SolicitudCompra,
-    UsuarioDepartamento, FraseMotivacional, Perfil
+    UsuarioDepartamento, FraseMotivacional, Perfil, Producto, Subproducto
 )
 
 # Inline para SolicitudCompra dentro de Seccion
@@ -72,3 +72,29 @@ class FraseMotivacionalAdmin(admin.ModelAdmin):
     ordering = ('personaje',)
 
 admin.site.register(FraseMotivacional, FraseMotivacionalAdmin)
+
+from .models import Producto, Subproducto
+
+# Inline para Subproducto dentro del admin de Producto
+class SubproductoInline(admin.TabularInline):
+    model = Subproducto
+    extra = 1
+    fields = ('nombre', 'codigo', 'descripcion', 'activo', 'fecha_creacion')
+    readonly_fields = ('fecha_creacion',)
+
+# Admin para Producto
+class ProductoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'codigo', 'activo', 'fecha_creacion', 'fecha_actualizacion')
+    search_fields = ('nombre', 'codigo')
+    list_filter = ('activo', 'fecha_creacion')
+    inlines = [SubproductoInline]
+
+admin.site.register(Producto, ProductoAdmin)
+
+# Admin para Subproducto independiente (si lo quieres fuera también)
+class SubproductoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'codigo', 'producto', 'activo', 'fecha_creacion')
+    search_fields = ('nombre', 'codigo', 'producto__nombre')
+    list_filter = ('producto', 'activo')
+
+admin.site.register(Subproducto, SubproductoAdmin)

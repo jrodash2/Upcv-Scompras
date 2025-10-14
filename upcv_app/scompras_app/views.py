@@ -12,7 +12,7 @@ import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .form import ExcelUploadForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
+from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -230,6 +230,15 @@ def detalle_seccion(request, departamento_id, seccion_id):
     return render(request, 'scompras/detalle_seccion.html', context)
 
 
+def ajax_cargar_subproductos(request):
+    producto_id = request.GET.get('producto_id')
+    print("Producto ID recibido en AJAX:", producto_id)
+    if producto_id:
+        subproductos = Subproducto.objects.filter(producto_id=producto_id).values('id', 'nombre')
+        data = list(subproductos)
+    else:
+        data = []
+    return JsonResponse(data, safe=False)
 
 
 # Views for Departamento

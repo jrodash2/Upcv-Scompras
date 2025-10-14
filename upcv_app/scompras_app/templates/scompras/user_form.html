@@ -85,10 +85,17 @@
                             {{ form.new_password }}
                         </div>
                         <div class="form-group">
-                            <label for="{{ form.confirm_password.id_for_label }}">Confirmar Contraseña</label>
+                            <label for="{{ form.confirm_password.id_for_label }}">Confirmaddddr Contraseña</label>
                             {{ form.confirm_password }}
                         </div>
-                        
+                        <div class="form-group">
+  {{ form.cargo.label_tag }}
+  {{ form.cargo }}
+  {% if form.cargo.errors %}
+    <div class="text-danger">{{ form.cargo.errors }}</div>
+  {% endif %}
+</div>
+
                     </div>
                 </div>
 

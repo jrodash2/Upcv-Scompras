@@ -10,10 +10,13 @@
         </div>
         <div class="col-6">
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">
+            <li class="breadcrumb-item">
+              <a href="">
                 <svg class="stroke-icon">
                   <use href="../assets/svg/icon-sprite.svg#stroke-home"></use>
-                </svg></a></li>
+                </svg>
+              </a>
+            </li>
           </ol>
         </div>
       </div>
@@ -35,13 +38,10 @@
               </ul>
               {% endif %}
 
-              {% if form.errors or perfil_form.errors %}
+              {% if form.errors %}
               <div class="alert alert-danger">
                 <ul>
                   {% for field, errors in form.errors.items %}
-                  <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
-                  {% endfor %}
-                  {% for field, errors in perfil_form.errors.items %}
                   <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
                   {% endfor %}
                 </ul>
@@ -66,14 +66,20 @@
                       {{ form.last_name }}
                     </div>
                     <div class="form-group">
+                      <label for="{{ form.email.id_for_label }}">Email</label>
+                      {{ form.email }}
+                    </div>
+                    <div class="form-group">
                       <label for="{{ form.group.id_for_label }}">Grupo</label>
                       {{ form.group }}
                     </div>
-
-                    <!-- Campo foto viene de perfil_form -->
                     <div class="form-group">
-                      <label for="{{ perfil_form.foto.id_for_label }}">Foto de perfil</label>
-                      {{ perfil_form.foto }}
+                      <label for="{{ form.cargo.id_for_label }}">Cargo</label>
+                      {{ form.cargo }}
+                    </div>
+                    <div class="form-group">
+                      <label for="{{ form.foto.id_for_label }}">Foto de perfil</label>
+                      {{ form.foto }}
                     </div>
 
                     {% if form.instance.perfil and form.instance.perfil.foto %}
@@ -83,18 +89,10 @@
                     </div>
                     {% endif %}
                   </div>
-
-                  <div class="col-md-6">
-                    <!-- Otros campos del usuario -->
-                    <div class="form-group">
-                      <label for="{{ form.email.id_for_label }}">Email</label>
-                      {{ form.email }}
-                    </div>
-                  </div>
                 </div>
 
                 <div class="form-footer text-end">
-                  <button class="btn btn-primary" type="submit">Editar Usuario</button>
+                  <button class="btn btn-primary" type="submit">Guardar Cambios</button>
                 </div>
               </form>
 

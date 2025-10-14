@@ -34,7 +34,7 @@ urlpatterns = [
     path('departamento/<int:departamento_id>/seccion/<int:seccion_id>/', views.detalle_seccion, name='detalle_seccion'),
     path('seccion/<int:pk>/', views.detalle_seccion, name='detalle_seccion'), 
     path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
-    
+     path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),
 
 
     # Asignación de usuarios a departamentos

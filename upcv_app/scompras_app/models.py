@@ -53,11 +53,13 @@ class SolicitudCompra(models.Model):
     fecha_solicitud = models.DateTimeField(default=timezone.now)
     aprobada = models.BooleanField(default=False)
 
+    # NUEVO:
+    producto = models.ForeignKey('Producto', on_delete=models.CASCADE, null=True, blank=True)
+    subproducto = models.ForeignKey('Subproducto', on_delete=models.CASCADE, null=True, blank=True)
+
     def __str__(self):
         return f'Solicitud #{self.id} - {self.seccion.nombre}'
 
-    def get_absolute_url(self):
-        return reverse('scompras:detalle_solicitud', kwargs={'pk': self.pk})
 
 
 class UsuarioDepartamento(models.Model):
@@ -89,6 +91,7 @@ def user_directory_path(instance, filename):
 class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     foto = models.ImageField(upload_to=user_directory_path, null=True, blank=True)
+    cargo = models.CharField(max_length=100, blank=True, null=True) 
 
     def __str__(self):
         return f'Perfil de {self.user.username}'
@@ -128,3 +131,32 @@ class FechaInsumo(models.Model):
 
     def __str__(self):
         return f"{self.fechainsumo}"        
+    
+
+class Producto(models.Model):
+    nombre = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, null=True)
+    codigo = models.CharField(max_length=100, unique=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.nombre} ({self.codigo})"
+
+
+class Subproducto(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='subproductos')
+    nombre = models.CharField(max_length=255)
+    descripcion = models.TextField(blank=True, null=True)
+    codigo = models.CharField(max_length=100)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('producto', 'codigo')  # Un subproducto no puede tener el mismo código dentro del mismo producto
+
+    def __str__(self):
+        return f"{self.nombre} ({self.codigo}) - Subproducto de {self.producto.nombre}"
+    

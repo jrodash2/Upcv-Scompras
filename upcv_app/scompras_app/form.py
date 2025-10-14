@@ -4,7 +4,7 @@ from django.forms import CheckboxInput, DateInput, inlineformset_factory, modelf
 from django.core.exceptions import ValidationError
 
 
-from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, UsuarioDepartamento, Institucion
+from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 
 from django.db.models import Sum, F, Value
 from django.db.models.functions import Coalesce
@@ -46,6 +46,10 @@ class InstitucionForm(forms.ModelForm):
 
 
 
+from django import forms
+from django.contrib.auth.models import User, Group
+from .models import Perfil
+
 class UserCreateForm(forms.ModelForm):
     new_password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
@@ -66,6 +70,11 @@ class UserCreateForm(forms.ModelForm):
         required=False,
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
+    cargo = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = User
@@ -85,13 +94,46 @@ class UserCreateForm(forms.ModelForm):
         if password != confirm:
             raise forms.ValidationError("Las contraseñas no coinciden.")
         return cleaned_data
-    
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('new_password')
+        user.set_password(password)
+
+        if commit:
+            user.save()
+            # Asignar grupo
+            group = self.cleaned_data.get('group')
+            if group:
+                user.groups.set([group])
+
+            # Crear perfil
+            cargo = self.cleaned_data.get('cargo')
+            foto = self.cleaned_data.get('foto')
+            Perfil.objects.update_or_create(
+                user=user,
+                defaults={'cargo': cargo, 'foto': foto}
+            )
+
+        return user
+
 class UserEditForm(forms.ModelForm):
     group = forms.ModelChoiceField(
         queryset=Group.objects.all(),
         required=False,
         label="Grupo",
         widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    cargo = forms.CharField(
+        max_length=100,
+        required=False,
+        label="Cargo",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    foto = forms.ImageField(
+        required=False,
+        label="Foto de perfil",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
 
     class Meta:
@@ -106,11 +148,42 @@ class UserEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.fields['username'].required = False
+
+        # Cargar valores iniciales del perfil (cargo y foto)
         if self.instance and self.instance.pk:
+            perfil = getattr(self.instance, 'perfil', None)
+            if perfil:
+                self.fields['cargo'].initial = perfil.cargo
+                self.fields['foto'].initial = perfil.foto
+
             groups = self.instance.groups.all()
             if groups.exists():
                 self.fields['group'].initial = groups.first()
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+
+        if commit:
+            # Actualizar grupo
+            group = self.cleaned_data.get('group')
+            if group:
+                user.groups.set([group])
+            else:
+                user.groups.clear()
+
+            # Actualizar perfil
+            perfil, created = Perfil.objects.get_or_create(user=user)
+            perfil.cargo = self.cleaned_data.get('cargo')
+            foto = self.cleaned_data.get('foto')
+
+            if foto:
+                perfil.foto = foto
+
+            perfil.save()
+
+        return user
 
 
 
@@ -129,7 +202,6 @@ class DepartamentoForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
 
-
 class UserForm(forms.ModelForm):
     new_password = forms.CharField(
         required=True, 
@@ -142,7 +214,8 @@ class UserForm(forms.ModelForm):
         label="Confirmar Contraseña"
     )
     group = forms.ModelChoiceField(queryset=Group.objects.all(), required=True, label="Grupo")
-    foto = forms.ImageField(required=False, label="Foto de perfil")  # Agregamos el campo aquí
+    foto = forms.ImageField(required=False, label="Foto de perfil")
+    cargo = forms.CharField(required=False, label="Cargo", widget=forms.TextInput(attrs={'class': 'form-control'}))  # nuevo campo cargo
 
     class Meta:
         model = User
@@ -154,10 +227,11 @@ class UserForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
 
-        # Mostrar foto existente si está editando
+        # Mostrar foto y cargo existentes si está editando
         if self.instance.pk:
             try:
                 self.fields['foto'].initial = self.instance.perfil.foto
+                self.fields['cargo'].initial = self.instance.perfil.cargo  # inicializamos cargo
             except Perfil.DoesNotExist:
                 pass
 
@@ -182,19 +256,15 @@ class UserForm(forms.ModelForm):
             user.groups.set([self.cleaned_data['group']])
             # Guardar o crear perfil
             foto = self.cleaned_data.get('foto')
+            cargo = self.cleaned_data.get('cargo')  # obtener valor cargo
             perfil, created = Perfil.objects.get_or_create(user=user)
             if foto:
                 perfil.foto = foto
-                perfil.save()
+            perfil.cargo = cargo  # guardamos cargo
+            perfil.save()
 
         return user
-    def __init__(self, *args, **kwargs):
-        super(UserForm, self).__init__(*args, **kwargs)
-        
-        
-        # Agregar la clase 'form-control' a todos los campos del formulario
-        for field in self.fields.values():
-            field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
+
             
 class UsuarioDepartamentoForm(forms.ModelForm):
     departamento = forms.ModelChoiceField(queryset=Departamento.objects.all(), required=True)
@@ -233,18 +303,37 @@ class PerfilForm(forms.ModelForm):
         }
   
 
-
 class SolicitudCompraForm(forms.ModelForm):
     class Meta:
         model = SolicitudCompra
-        fields = ['descripcion']
+        fields = ['descripcion', 'producto', 'subproducto']
         widgets = {
-            'descripcion': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Describe la solicitud',
-            }),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+            'producto': forms.Select(attrs={'class': 'form-control', 'id': 'id_producto'}),
+            'subproducto': forms.Select(attrs={'class': 'form-control', 'id': 'id_subproducto'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['subproducto'].queryset = Subproducto.objects.none()
+
+        # Primero, si viene producto en data (POST o GET)
+        if 'producto' in self.data:
+            try:
+                producto_id = int(self.data.get('producto'))
+                self.fields['subproducto'].queryset = Subproducto.objects.filter(producto_id=producto_id)
+            except (ValueError, TypeError):
+                pass
+        # Segundo, si la instancia ya tiene producto relacionado (edición)
+        elif self.instance.pk and self.instance.producto:
+            self.fields['subproducto'].queryset = self.instance.producto.subproductos.all()
+        # Tercero, si en initial o kwargs se pasa un producto, cargar también subproductos
+        elif 'initial' in kwargs and 'producto' in kwargs['initial']:
+            try:
+                producto_id = int(kwargs['initial']['producto'])
+                self.fields['subproducto'].queryset = Subproducto.objects.filter(producto_id=producto_id)
+            except (ValueError, TypeError):
+                pass
 
 
 

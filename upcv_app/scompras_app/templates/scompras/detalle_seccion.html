@@ -14,7 +14,7 @@
     <div class="page-title">
       <div class="row">
         <div class="col-6">
-          <h4 class="card-title mb-0">Departamento: {{ seccion.departamento.nombre }} / Sección: {{ seccion.nombre }}</h4>
+          <h4 class="card-title mb-0"> {{ seccion.departamento.nombre }} / {{ seccion.nombre }}</h4>
         </div>
         <div class="col-6">
           <ol class="breadcrumb">
@@ -34,15 +34,18 @@
 
     <!-- Contenido principal -->
     <div class="row mt-4">
+
       <!-- Formulario -->
-<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
-  <div class="feature-box common-card bg-feature no-bg-hover card-hover shadow">
+      <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
+        <div class="feature-box common-card bg-feature no-bg-hover card-hover shadow">
           <div class="feature-icon">
             <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="form-icon">
           </div>
           <h5 class="text-center mb-3">Nueva Solicitud de Compra</h5>
           <form method="post">
             {% csrf_token %}
+
+            <!-- Descripción -->
             <div class="form-group">
               {{ form.descripcion.label_tag }}
               {{ form.descripcion }}
@@ -50,23 +53,39 @@
                 <div class="text-danger">{{ form.descripcion.errors }}</div>
               {% endif %}
             </div>
+
+
+
+            <!-- Producto -->
             <div class="form-group mt-2">
-              {{ form.monto_estimado.label_tag }}
-              {{ form.monto_estimado }}
-              {% if form.monto_estimado.errors %}
-                <div class="text-danger">{{ form.monto_estimado.errors }}</div>
+              {{ form.producto.label_tag }}
+              {{ form.producto }}
+              {% if form.producto.errors %}
+                <div class="text-danger">{{ form.producto.errors }}</div>
               {% endif %}
             </div>
+
+            <!-- Subproducto -->
+            <div class="form-group mt-2">
+              {{ form.subproducto.label_tag }}
+              {{ form.subproducto }}
+              {% if form.subproducto.errors %}
+                <div class="text-danger">{{ form.subproducto.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Botón -->
             <div class="text-center">
               <button type="submit" class="btn btn-success mt-3">Enviar Solicitud</button>
             </div>
+
           </form>
         </div>
       </div>
 
       <!-- Historial de Solicitudes -->
-<div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
-  <div class="feature-box common-card bg-light no-bg-hover card-hover shadow">
+      <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-4">
+        <div class="feature-box common-card bg-light no-bg-hover card-hover shadow">
           <div class="feature-icon">
             <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="history-icon">
           </div>
@@ -78,7 +97,7 @@
                   <tr>
                     <th>Fecha</th>
                     <th>Descripción</th>
-                    <th>Monto</th>
+
                     <th>Estado</th>
                   </tr>
                 </thead>
@@ -87,7 +106,6 @@
                     <tr>
                       <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
                       <td>{{ solicitud.descripcion|truncatewords:10 }}</td>
-                      <td>Q {{ solicitud.monto_estimado|floatformat:2 }}</td>
                       <td>
                         {% if solicitud.aprobada %}
                           <span class="badge bg-success">Aprobada</span>
@@ -117,13 +135,11 @@
   z-index: 2;
 }
 
-/* Evitar cambio de color y fondo en hover para tarjetas con esta clase */
 .no-bg-hover:hover {
   background-color: inherit !important;
   color: inherit !important;
 }
 
-/* Evitar cambio de color en el texto h5 dentro de la tarjeta */
 .no-bg-hover:hover h5 {
   color: inherit !important;
 }
@@ -145,7 +161,8 @@
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 8px;
   border-radius: 5px;
@@ -155,18 +172,31 @@
 .form-group {
   margin-bottom: 1rem;
 }
-
 </style>
 
-<!-- Inicializar DataTables -->
+<!-- Inicializar DataTables + AJAX subproducto -->
 <script>
-  $(document).ready(function () {
-    $('#solicitudesTable').DataTable({
-      language: {
-        url: "{% static 'assets/js/datatable/datatables/spanish.json' %}"
-      }
-    });
+var $subproducto = $('#id_subproducto');
+$subproducto.prop('disabled', true);
+
+$('#id_producto').change(function () {
+  var productoId = $(this).val();
+  var url = "{% url 'scompras:ajax_cargar_subproductos' %}";
+
+  $.ajax({
+    url: url,
+    data: { 'producto_id': productoId },
+    success: function (data) {
+      $subproducto.empty();
+      $subproducto.append('<option value="">Seleccione un subproducto</option>');
+      $.each(data, function (index, item) {
+        $subproducto.append('<option value="' + item.id + '">' + item.nombre + '</option>');
+      });
+      $subproducto.prop('disabled', data.length === 0);
+    }
   });
+});
+
 </script>
 
 {% endblock %}
