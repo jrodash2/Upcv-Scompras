@@ -8,7 +8,7 @@ from .models import (
 class SolicitudCompraInline(admin.TabularInline):
     model = SolicitudCompra
     extra = 0
-    fields = ('usuario', 'descripcion', 'fecha_solicitud', 'aprobada')
+    fields = ('usuario', 'descripcion', 'fecha_solicitud', 'estado', 'prioridad', 'producto', 'subproducto')
     readonly_fields = ('fecha_solicitud',)
 
 class SeccionInline(admin.TabularInline):
@@ -33,9 +33,9 @@ admin.site.register(Perfil, PerfilAdmin)
 
 # Admin para SolicitudCompra
 class SolicitudCompraAdmin(admin.ModelAdmin):
-    list_display = ('id', 'seccion', 'usuario', 'fecha_solicitud', 'aprobada')
+    list_display = ('id', 'seccion', 'usuario', 'fecha_solicitud')
     search_fields = ('seccion__nombre', 'usuario__username', 'descripcion')
-    list_filter = ('aprobada', 'fecha_solicitud')
+    list_filter = ('fecha_solicitud', 'estado', 'prioridad')
 
 admin.site.register(SolicitudCompra, SolicitudCompraAdmin)
 

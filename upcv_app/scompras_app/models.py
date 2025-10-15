@@ -46,19 +46,33 @@ class Seccion(models.Model):
         return f'{self.nombre} ({self.departamento.nombre})'
 
 
+
 class SolicitudCompra(models.Model):
+    ESTADOS = [
+        ('Creada', 'Creada'),
+        ('Rechazada', 'Rechazada'),
+        ('Finalizada', 'Finalizada'),
+    ]
+
+    PRIORIDADES = [
+        ('Baja', 'Baja'),
+        ('Media', 'Media'),
+        ('Alta', 'Alta'),
+    ]
+
     seccion = models.ForeignKey('Seccion', on_delete=models.CASCADE, related_name='solicitudes')
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     descripcion = models.TextField()
     fecha_solicitud = models.DateTimeField(default=timezone.now)
-    aprobada = models.BooleanField(default=False)
-
-    # NUEVO:
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Creada')
+    prioridad = models.CharField(max_length=20, choices=PRIORIDADES, default='Media')
     producto = models.ForeignKey('Producto', on_delete=models.CASCADE, null=True, blank=True)
     subproducto = models.ForeignKey('Subproducto', on_delete=models.CASCADE, null=True, blank=True)
-
+    insumos = models.ManyToManyField('Insumo', related_name='solicitudes', blank=True)
+    
     def __str__(self):
-        return f'Solicitud #{self.id} - {self.seccion.nombre}'
+        return f'Solicitud #{self.id} - {self.estado}'
+
 
 
 
@@ -131,6 +145,15 @@ class FechaInsumo(models.Model):
 
     def __str__(self):
         return f"{self.fechainsumo}"        
+    
+class InsumoSolicitud(models.Model):
+    solicitud = models.ForeignKey(SolicitudCompra, on_delete=models.CASCADE, related_name='insumos_solicitud')
+    insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)  # o la cantidad que necesites
+
+    class Meta:
+        unique_together = ('solicitud', 'insumo')  # para evitar duplicados
+
     
 
 class Producto(models.Model):

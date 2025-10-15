@@ -19,6 +19,9 @@ urlpatterns = [
     path('importar-excel/', views.importar_excel, name='importar_excel'),
     path('catalogo-insumos/', views.catalogo_insumos_view, name='catalogo_insumos_view'),  
     path('insumos-json/', views.insumos_json, name='insumos_json'),
+    path('agregar-insumo-solicitud/', views.agregar_insumo_solicitud, name='agregar_insumo_solicitud'),
+    
+
     path('descargar-insumos/', views.descargar_insumos_excel, name='descargar_insumos'),
     # Usuarios
     path('usuario/crear/', views.user_create, name='user_create'),
@@ -32,9 +35,14 @@ urlpatterns = [
     path('departamentos/', views.lista_departamentos, name='lista_departamentos'),
     path('departamento/<int:pk>/', views.detalle_departamento, name='detalle_departamento'),
     path('departamento/<int:departamento_id>/seccion/<int:seccion_id>/', views.detalle_seccion, name='detalle_seccion'),
-    path('seccion/<int:pk>/', views.detalle_seccion, name='detalle_seccion'), 
+
     path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
-     path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),
+    path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),
+    path('solicitud/<int:pk>/',views.SolicitudCompraDetailView.as_view(), name='detalle_solicitud'),
+   
+
+
+   
 
 
     # Asignación de usuarios a departamentos

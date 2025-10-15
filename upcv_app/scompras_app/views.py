@@ -12,7 +12,7 @@ import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .form import ExcelUploadForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import FechaInsumo, Insumo, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
+from .models import  FechaInsumo, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -56,7 +56,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font
 import re
-
+from django.views.generic.detail import DetailView
 from django.core.mail import BadHeaderError
 from smtplib import SMTPException
 
@@ -230,6 +230,7 @@ def detalle_seccion(request, departamento_id, seccion_id):
     return render(request, 'scompras/detalle_seccion.html', context)
 
 
+
 def ajax_cargar_subproductos(request):
     producto_id = request.GET.get('producto_id')
     print("Producto ID recibido en AJAX:", producto_id)
@@ -301,61 +302,61 @@ def user_create(request):
 @grupo_requerido('Administrador', 'scompras')
 def user_edit(request, user_id):
     user = get_object_or_404(User, pk=user_id)
-    try:
-        perfil = user.perfil
-    except Perfil.DoesNotExist:
-        perfil = Perfil(user=user)
 
     if request.method == 'POST':
-        form_user = UserEditForm(request.POST, instance=user)
-        form_perfil = PerfilForm(request.POST, request.FILES, instance=perfil)
-        if form_user.is_valid() and form_perfil.is_valid():
-            user = form_user.save(commit=False)
-            user.save()
-
-            # Actualizar grupo: limpiar y agregar el nuevo grupo
-            group = form_user.cleaned_data.get('group')
-            if group:
-                user.groups.clear()
-                user.groups.add(group)
-
-            perfil = form_perfil.save(commit=False)
-            perfil.user = user
-            perfil.save()
-
+        form = UserEditForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
             messages.success(request, 'Usuario editado correctamente.')
-            return redirect('scompras:user_create')
+            return redirect('scompras:user_edit', user_id=user.id)
     else:
-        form_user = UserEditForm(instance=user)
-        form_perfil = PerfilForm(instance=perfil)
+        form = UserEditForm(instance=user)
 
     context = {
-        'form': form_user,
-        'perfil_form': form_perfil,
+        'form': form,
+        'user': user,
         'users': User.objects.all(),
     }
     return render(request, 'scompras/user_form_edit.html', context)
 
 
 
-@login_required
-@grupo_requerido('Administrador', 'scompras')
-def perfil_edit(request, user_id):
-    user = get_object_or_404(User, pk=user_id)
-    try:
-        perfil = user.perfil
-    except Perfil.DoesNotExist:
-        perfil = Perfil(user=user)
-    
+class SolicitudCompraDetailView(DetailView):
+    model = SolicitudCompra
+    template_name = 'scompras/detalle_solicitud.html'
+    context_object_name = 'solicitud'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        solicitud = self.get_object()
+
+        context['insumos'] = Insumo.objects.all()  # Para el formulario, si es necesario
+        context['detalles'] = InsumoSolicitud.objects.filter(solicitud=solicitud)
+        context['ultima_fecha_insumo'] = FechaInsumo.objects.last()
+
+        return context
+
+@csrf_exempt
+def agregar_insumo_solicitud(request):
     if request.method == 'POST':
-        form = PerfilForm(request.POST, request.FILES, instance=perfil)
-        if form.is_valid():
-            form.save()
-            return redirect('scompras:user_edit', user_id=user.id)
-    else:
-        form = PerfilForm(instance=perfil)
-    
-    return render(request, 'scompras/perfil_edit.html', {'form': form, 'user': user})
+        solicitud_id = request.POST.get('solicitud_id')
+        insumo_codigo = request.POST.get('insumo_codigo')
+
+        # Intentar obtener un solo insumo con filter().first()
+        insumo = Insumo.objects.filter(codigo_insumo=insumo_codigo).first()
+        if not insumo:
+            return JsonResponse({'success': False, 'error': 'Insumo no encontrado.'})
+
+        # Aquí agregar lógica para asociar el insumo a la solicitud
+        # Ejemplo:
+        # solicitud = Solicitud.objects.get(id=solicitud_id)
+        # solicitud.insumos.add(insumo)
+        # solicitud.save()
+
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
 
 @login_required
 @grupo_requerido('Administrador', 'scompras')
