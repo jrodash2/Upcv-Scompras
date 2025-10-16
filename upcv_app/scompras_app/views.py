@@ -335,27 +335,58 @@ class SolicitudCompraDetailView(DetailView):
         context['ultima_fecha_insumo'] = FechaInsumo.objects.last()
 
         return context
-
-@csrf_exempt
-def agregar_insumo_solicitud(request):
-    if request.method == 'POST':
-        solicitud_id = request.POST.get('solicitud_id')
-        insumo_codigo = request.POST.get('insumo_codigo')
-
-        # Intentar obtener un solo insumo con filter().first()
-        insumo = Insumo.objects.filter(codigo_insumo=insumo_codigo).first()
-        if not insumo:
-            return JsonResponse({'success': False, 'error': 'Insumo no encontrado.'})
-
-        # Aquí agregar lógica para asociar el insumo a la solicitud
-        # Ejemplo:
-        # solicitud = Solicitud.objects.get(id=solicitud_id)
-        # solicitud.insumos.add(insumo)
-        # solicitud.save()
-
+    
+    
+@require_POST
+def eliminar_insumo_solicitud(request, pk):
+    try:
+        detalle = InsumoSolicitud.objects.get(pk=pk)
+        detalle.delete()
         return JsonResponse({'success': True})
+    except InsumoSolicitud.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Insumo no encontrado'})    
 
-    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+from django.forms.models import model_to_dict
+
+@require_POST
+def agregar_insumo_solicitud(request):
+    solicitud_id = request.POST.get('solicitud_id')
+    codigo_presentacion = request.POST.get('codigo_presentacion', '').strip()
+
+    try:
+        solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+
+        insumos = Insumo.objects.filter(codigo_presentacion__iexact=codigo_presentacion)
+        if not insumos.exists():
+            return JsonResponse({'success': False, 'error': 'Insumo no encontrado por código de presentación.'})
+        insumo = insumos.first()
+
+        if InsumoSolicitud.objects.filter(solicitud=solicitud, insumo=insumo).exists():
+            return JsonResponse({'success': False, 'error': 'Este insumo ya está agregado.'})
+
+        InsumoSolicitud.objects.create(solicitud=solicitud, insumo=insumo)
+
+        # Devuelve datos necesarios para renderizar fila (puedes ajustar los campos)
+        insumo_data = {
+            'codigo_insumo': insumo.codigo_insumo,
+            'nombre': insumo.nombre,
+            'caracteristicas': insumo.caracteristicas or '-',
+            'nombre_presentacion': insumo.nombre_presentacion,
+            'cantidad_unidad_presentacion': insumo.cantidad_unidad_presentacion,
+            'codigo_presentacion': insumo.codigo_presentacion,
+        }
+
+        return JsonResponse({'success': True, 'insumo': insumo_data})
+
+    except SolicitudCompra.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Solicitud no encontrada.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+
 
 
 @login_required

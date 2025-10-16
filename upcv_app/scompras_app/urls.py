@@ -21,6 +21,7 @@ urlpatterns = [
     path('insumos-json/', views.insumos_json, name='insumos_json'),
     path('agregar-insumo-solicitud/', views.agregar_insumo_solicitud, name='agregar_insumo_solicitud'),
     
+    
 
     path('descargar-insumos/', views.descargar_insumos_excel, name='descargar_insumos'),
     # Usuarios
@@ -39,8 +40,8 @@ urlpatterns = [
     path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
     path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),
     path('solicitud/<int:pk>/',views.SolicitudCompraDetailView.as_view(), name='detalle_solicitud'),
-   
-
+    path('eliminar-insumo/<int:pk>/', views.eliminar_insumo_solicitud, name='eliminar_insumo_solicitud'),
+    
 
    
 

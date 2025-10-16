@@ -94,6 +94,7 @@
         <!-- Descripción de productos -->
         <tr>
           <td>
+            <!-- Tabla de Insumos -->
             <table id="tabla-insumos-agregados" style="width: 100%; border-spacing: 0;">
               <thead>
                 <tr style="background: #0068ab; color: white;">
@@ -107,28 +108,34 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">
-                    No hay insumos agregados aún.
-                  </td>
-                </tr>
+                {% if detalles %}
+                  {% for detalle in detalles %}
+                    <tr data-id="{{ detalle.id }}">
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_insumo }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.nombre }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.caracteristicas|default:"-" }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.nombre_presentacion }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_presentacion }}</td>
+                      <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
+                        <button type="button" class="btn-eliminar" data-id="{{ detalle.id }}"
+                          style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">
+                      No hay insumos agregados aún.
+                    </td>
+                  </tr>
+                {% endif %}
               </tbody>
             </table>
           </td>
         </tr>
-
-        <!-- Botón de volver -->
-        <tr>
-          <td>
-            <div style="margin: 28px 0; display: flex; justify-content: end;">
-              <a href="{% url 'scompras:detalle_seccion' departamento_id=solicitud.seccion.departamento.id seccion_id=solicitud.seccion.id %}"
-                 style="display: inline-block; background: #0068ab; color: #fff; border-radius: 10px; padding: 12px 24px; font-size: 16px; font-weight: 600; text-decoration: none;">
-                Volver a sección
-              </a>
-            </div>
-          </td>
-        </tr>
-
       </tbody>
     </table>
   </div>
@@ -145,7 +152,6 @@
           <th style="padding: 12px;">Presentación</th>
           <th style="padding: 12px;">Cantidad Unidad Presentación</th>
           <th style="padding: 12px;">Código Presentación</th>
-          <th style="padding: 12px;">Fecha Actualización</th>
           <th style="padding: 12px; text-align:center;">Agregar</th>
         </tr>
       </thead>
@@ -158,7 +164,6 @@
           <td style="padding: 12px;">{{ insumo.nombre_presentacion }}</td>
           <td style="padding: 12px;">{{ insumo.cantidad_unidad_presentacion }}</td>
           <td style="padding: 12px;">{{ insumo.codigo_presentacion }}</td>
-          <td style="padding: 12px;">{{ insumo.fecha_actualizacion|date:"M d, Y H:i" }}</td>
           <td style="padding: 12px; text-align:center;">
             <button type="button" class="btn-agregar"
               data-codigo="{{ insumo.codigo_insumo }}"
@@ -173,44 +178,42 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="8" style="text-align: center; padding: 20px;">No hay insumos disponibles.</td>
+          <td colspan="7" style="text-align: center; padding: 20px;">No hay insumos disponibles.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-
-    <!-- Botón guardar -->
-<div style="margin-top: 20px; text-align: right;">
-  <button id="btn-guardar-insumos" 
-          style="background: #28a745; color: white; padding: 10px 20px; font-size: 16px; border:none; border-radius: 6px; cursor: pointer;">
-    Guardar insumos
-  </button>
-</div>
   </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const botonesAgregar = document.querySelectorAll('.btn-agregar');
-  const tbodyInsumosAgregados = document.querySelector('#tabla-insumos-agregados tbody');
   const solicitudId = document.getElementById('solicitud-id').value;
+  const tbodyInsumosAgregados = document.querySelector('#tabla-insumos-agregados tbody');
 
+  // Función para verificar si un insumo ya está agregado
   function yaExiste(codigo) {
     return [...tbodyInsumosAgregados.querySelectorAll('tr')].some(tr => tr.cells[0]?.textContent === codigo);
   }
 
-  function agregarFila(insumo) {
-    // Si estaba el mensaje de "No hay insumos", eliminarlo
+  // Función para agregar una fila nueva
+  function agregarFila(insumo, id=null) {
+    // Elimina mensaje "No hay insumos" si existe
     const mensajeNoHay = tbodyInsumosAgregados.querySelector('tr td[colspan="7"]');
     if (mensajeNoHay) {
       mensajeNoHay.parentElement.remove();
     }
 
-    if(yaExiste(insumo.codigo_insumo)) {
-      alert('Este insumo ya fue agregado.');
-      return;
-    }
+function yaExiste(codigo_insumo, codigo_presentacion) {
+  return [...tbodyInsumosAgregados.querySelectorAll('tr')].some(tr => {
+    const codigo = tr.cells[0]?.textContent.trim();
+    const codigoPres = tr.cells[5]?.textContent.trim();
+    return codigo === codigo_insumo && codigoPres === codigo_presentacion;
+  });
+}
+
 
     const fila = document.createElement('tr');
+    if(id) fila.setAttribute('data-id', id);
     fila.innerHTML = `
       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_insumo}</td>
       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre}</td>
@@ -219,23 +222,48 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
       <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
-        <button type="button" class="btn-eliminar" style="background: #d9534f; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
+        <button type="button" class="btn-eliminar" style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
           Eliminar
         </button>
       </td>
     `;
     tbodyInsumosAgregados.appendChild(fila);
 
-    // Evento eliminar (puedes agregar llamada para eliminar en BD si deseas)
+    // Agregar listener para eliminar fila
     fila.querySelector('.btn-eliminar').addEventListener('click', () => {
-      fila.remove();
-      if (tbodyInsumosAgregados.children.length === 0) {
-        tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
+      if(id) {
+        // Si el insumo ya está guardado, eliminar del backend
+        fetch(`/scompras/eliminar-insumo/${id}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(res => res.json())
+        .then(data => {
+          if(data.success) {
+            fila.remove();
+            if (tbodyInsumosAgregados.children.length === 0) {
+              tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
+            }
+          } else {
+            alert(data.error || 'No se pudo eliminar el insumo.');
+          }
+        })
+        .catch(() => alert('Error de red al eliminar insumo.'));
+      } else {
+        // Si es fila recién agregada en frontend y aún no guardada
+        fila.remove();
+        if (tbodyInsumosAgregados.children.length === 0) {
+          tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
+        }
       }
     });
   }
 
-  botonesAgregar.forEach(boton => {
+  // Agregar event listeners a botones agregar insumo
+  document.querySelectorAll('.btn-agregar').forEach(boton => {
     boton.addEventListener('click', () => {
       const insumoData = {
         codigo_insumo: boton.getAttribute('data-codigo'),
@@ -254,13 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: new URLSearchParams({
           'solicitud_id': solicitudId,
-          'insumo_codigo': insumoData.codigo_insumo,
+          'codigo_presentacion': insumoData.codigo_presentacion.trim(),
         })
       })
       .then(response => response.json())
       .then(data => {
         if(data.success) {
-          agregarFila(insumoData);
+          // 'data.insumo_id' esperado en respuesta para el id del detalle guardado
+          agregarFila(insumoData, data.insumo_id);
         } else {
           alert(data.error || 'Error al agregar insumo.');
         }
@@ -268,6 +297,37 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => alert('Error en la comunicación con el servidor.'));
     });
   });
+
+  // Agregar listeners a botones eliminar ya presentes al cargar la página
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const fila = this.closest('tr');
+      const insumoId = this.dataset.id;
+
+      fetch(`/scompras/eliminar-insumo/${insumoId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          fila.remove();
+          // Mostrar mensaje si ya no hay filas
+          if (tbodyInsumosAgregados.children.length === 0) {
+            tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
+          }
+        } else {
+          alert(data.error || 'No se pudo eliminar el insumo.');
+        }
+      })
+      .catch(() => {
+        alert('Error de red al eliminar insumo.');
+      });
+    });
+  });
+
 });
 </script>
 
