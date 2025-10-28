@@ -1,7 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+ <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -176,20 +176,7 @@
     </div>
   </div>
 
-  <style>
-.dropdown-wide {
-  min-width: 220px; /* O el ancho que prefieras */
-  padding: 10px 15px; /* Opcional, para darle espacio interno */
-  text-align: center;
-}
-.profile-dropdown li a {
-  display: block;
-  padding: 8px 12px;
-  white-space: nowrap; /* Evita que se parta el texto */
-  display: inline-block;
-  margin: 5px auto;
-}
-  </style>
+  
   <!-- Dropdown -->
 <ul class="profile-dropdown onhover-show-div dropdown-wide text-center">
   <li>
@@ -395,9 +382,9 @@
     
   
 </script>
-  
+{% comment %}   
 <!-- latest jquery-->
-<script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<script src="{% static 'assets/js/jquery.min.js' %}"></script> {% endcomment %}
 <!-- Bootstrap js-->
 <script src="{% static 'assets/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <!-- feather icon js-->

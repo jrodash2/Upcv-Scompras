@@ -40,7 +40,9 @@ urlpatterns = [
     path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
     path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),
     path('solicitud/<int:pk>/',views.SolicitudCompraDetailView.as_view(), name='detalle_solicitud'),
-    path('eliminar-insumo/<int:pk>/', views.eliminar_insumo_solicitud, name='eliminar_insumo_solicitud'),
+    path('solicitud/eliminar_insumo/<int:detalle_id>/', views.eliminar_detalle_solicitud, name='eliminar_detalle_solicitud'),
+
+    path('insumos-disponibles-json/', views.insumos_disponibles_json, name='insumos_disponibles_json'),
     
 
    

@@ -1,4 +1,4 @@
-{% extends 'scompras/base.html' %}
+{% extends 'scompras/basecatalogo.html' %}
 {% block content %}
 {% load static %}
 
@@ -118,11 +118,12 @@
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_presentacion }}</td>
                       <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
-                        <button type="button" class="btn-eliminar" data-id="{{ detalle.id }}"
-                          style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
-                          Eliminar
-                        </button>
-                      </td>
+
+<button type="button" class="btn-eliminar" data-id="{{ detalle.id }}"
+  style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
+  Eliminar
+</button>
+                      </td>
                     </tr>
                   {% endfor %}
                 {% else %}
@@ -140,195 +141,216 @@
     </table>
   </div>
 
-  <!-- Card con tabla de Insumos -->
-  <div style="width: 1160px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); padding: 20px;">
-    <h3 style="font-weight: 700; margin-bottom: 20px; color: #0068ab;">Lista de Insumos</h3>
-    <table id="tabla-insumos" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="background-color: #0068ab; color: white; text-align: left;">
-          <th style="padding: 12px;">Código Insumo</th>
-          <th style="padding: 12px;">Nombre</th>
-          <th style="padding: 12px;">Características</th>
-          <th style="padding: 12px;">Presentación</th>
-          <th style="padding: 12px;">Cantidad Unidad Presentación</th>
-          <th style="padding: 12px;">Código Presentación</th>
-          <th style="padding: 12px; text-align:center;">Agregar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for insumo in insumos %}
-        <tr style="border-bottom: 1px solid #ddd;">
-          <td style="padding: 12px;">{{ insumo.codigo_insumo }}</td>
-          <td style="padding: 12px;">{{ insumo.nombre }}</td>
-          <td style="padding: 12px;">{{ insumo.caracteristicas|default:"-" }}</td>
-          <td style="padding: 12px;">{{ insumo.nombre_presentacion }}</td>
-          <td style="padding: 12px;">{{ insumo.cantidad_unidad_presentacion }}</td>
-          <td style="padding: 12px;">{{ insumo.codigo_presentacion }}</td>
-          <td style="padding: 12px; text-align:center;">
-            <button type="button" class="btn-agregar"
-              data-codigo="{{ insumo.codigo_insumo }}"
-              data-nombre="{{ insumo.nombre }}"
-              data-caracteristicas="{{ insumo.caracteristicas|default:'-' }}"
-              data-presentacion="{{ insumo.nombre_presentacion }}"
-              data-cantidad="{{ insumo.cantidad_unidad_presentacion }}"
-              data-codigo-presentacion="{{ insumo.codigo_presentacion }}">
-              Agregar
-            </button>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="7" style="text-align: center; padding: 20px;">No hay insumos disponibles.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+<div class="card-body">
+      <div class="table-responsive">
+        <table class="display table" id="basic-1" style="width:100%">
+          <thead>
+            <tr>
+              <th>Renglón</th>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Características</th>
+              <th>Presentación</th>
+              <th>Cantidad y Unidad</th>
+              <th>Código Presentación</th>
+                            <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+                      </tbody>
+        </table>
+      </div>
+    </div>
   </div>
+ 
+</div>
+
+<script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<script src="{% static 'assets/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const solicitudId = document.getElementById('solicitud-id').value;
-  const tbodyInsumosAgregados = document.querySelector('#tabla-insumos-agregados tbody');
+    // Función para obtener el CSRF token de las cookies (necesario para AJAX POST en Django)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
 
-  // Función para verificar si un insumo ya está agregado
-  function yaExiste(codigo) {
-    return [...tbodyInsumosAgregados.querySelectorAll('tr')].some(tr => tr.cells[0]?.textContent === codigo);
-  }
 
-  // Función para agregar una fila nueva
-  function agregarFila(insumo, id=null) {
-    // Elimina mensaje "No hay insumos" si existe
-    const mensajeNoHay = tbodyInsumosAgregados.querySelector('tr td[colspan="7"]');
-    if (mensajeNoHay) {
-      mensajeNoHay.parentElement.remove();
+    // 3. Funci\u00f3n para agregar el insumo a la tabla superior con el ID correcto
+    function appendInsumoToAgregados(insumo, detalleId) {
+        const newRow = `
+            <tr data-id="${detalleId}">
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_insumo}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristicas}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre_presentacion}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
+                <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
+                    <button type="button" class="btn-eliminar" data-id="${detalleId}"
+                      style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
+                      Eliminar
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        // Remover la fila de "No hay insumos agregados" si existe
+        $('#tabla-insumos-agregados tbody tr').each(function() {
+            if ($(this).find('td').text().includes('No hay insumos agregados aún.')) {
+                $(this).remove();
+                return false;
+            }
+        });
+
+        // Agregar la nueva fila
+        $('#tabla-insumos-agregados tbody').append(newRow);
     }
 
-function yaExiste(codigo_insumo, codigo_presentacion) {
-  return [...tbodyInsumosAgregados.querySelectorAll('tr')].some(tr => {
-    const codigo = tr.cells[0]?.textContent.trim();
-    const codigoPres = tr.cells[5]?.textContent.trim();
-    return codigo === codigo_insumo && codigoPres === codigo_presentacion;
-  });
-}
+    // Funci\u00f3n para verificar si la tabla de agregados queda vac\u00eda
+    function checkEmptyTable() {
+        if ($('#tabla-insumos-agregados tbody tr').length === 0) {
+            const emptyMessage = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">
+                        No hay insumos agregados a\u00fan.
+                    </td>
+                </tr>
+            `;
+            $('#tabla-insumos-agregados tbody').append(emptyMessage);
+        }
+    }
 
 
-    const fila = document.createElement('tr');
-    if(id) fila.setAttribute('data-id', id);
-    fila.innerHTML = `
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_insumo}</td>
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre}</td>
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristicas}</td>
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre_presentacion}</td>
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
-      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
-      <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
-        <button type="button" class="btn-eliminar" style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
-          Eliminar
-        </button>
-      </td>
-    `;
-    tbodyInsumosAgregados.appendChild(fila);
-
-    // Agregar listener para eliminar fila
-    fila.querySelector('.btn-eliminar').addEventListener('click', () => {
-      if(id) {
-        // Si el insumo ya está guardado, eliminar del backend
-        fetch(`/scompras/eliminar-insumo/${id}/`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json',
-          },
-        })
-        .then(res => res.json())
-        .then(data => {
-          if(data.success) {
-            fila.remove();
-            if (tbodyInsumosAgregados.children.length === 0) {
-              tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
+    $(document).ready(function () {
+        const solicitudId = $('#solicitud-id').val();
+        
+        // Inicializar DataTables
+        const tablaInsumos = $('#basic-1').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: '{% url "scompras:insumos_json" %}',
+            columns: [
+                { data: 0 }, { data: 1 }, { data: 2 }, { data: 3 }, 
+                { data: 4 }, { data: 5 }, { data: 6 }, 
+                { data: null } // Columna de Acci\u00f3n
+            ],
+            columnDefs: [
+                {
+                    targets: 7,
+                    orderable: false,
+                    render: function (data, type, row) {
+                        const codigoPresentacion = row[6]; 
+                        return `
+                            <button type="button" class="btn btn-primary btn-agregar-insumo" 
+                                data-codigo-presentacion="${codigoPresentacion}"
+                                style="background: #28a745; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
+                                Agregar
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
             }
-          } else {
-            alert(data.error || 'No se pudo eliminar el insumo.');
-          }
-        })
-        .catch(() => alert('Error de red al eliminar insumo.'));
-      } else {
-        // Si es fila recién agregada en frontend y aún no guardada
-        fila.remove();
-        if (tbodyInsumosAgregados.children.length === 0) {
-          tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
-        }
-      }
+        });
+        
+        
+        // --- 1. Lógica para AGREGAR Insumo (AJAX) ---
+        $('#basic-1 tbody').on('click', '.btn-agregar-insumo', function () {
+            const btn = $(this);
+            const codigoPresentacion = btn.data('codigo-presentacion');
+
+            btn.prop('disabled', true).text('Agregando...');
+
+            $.ajax({
+                url: '{% url "scompras:agregar_insumo_solicitud" %}',
+                type: 'POST',
+                data: {
+                    'solicitud_id': solicitudId,
+                    'codigo_presentacion': codigoPresentacion,
+                    'csrfmiddlewaretoken': csrftoken 
+                },
+                success: function (response) {
+                    if (response.success) {
+                       
+                        // \u2705 Corregido: Pasamos el detalle_id real
+                        appendInsumoToAgregados(response.insumo, response.detalle_id); 
+                        
+                        // Opcional: Si quieres que el insumo desaparezca de la tabla inferior (cat\u00e1logo)
+                        tablaInsumos.ajax.reload(null, false); 
+
+                        btn.prop('disabled', true).text('Agregado').css('background', '#6c757d');
+                    } else {
+                       
+                        btn.prop('disabled', false).text('Agregar');
+                    }
+                },
+                error: function () {
+                    alert('Ocurrió un error en la comunicación con el servidor.');
+                    btn.prop('disabled', false).text('Agregar');
+                }
+            });
+        });
+// --- 2. Lógica para ELIMINAR Insumo (AJAX) ---
+        // Usamos delegación para manejar los clics en botones creados dinámicamente
+        $('#tabla-insumos-agregados').on('click', '.btn-eliminar', function () {
+            const btn = $(this);
+            const detalleId = btn.data('id');
+            const row = btn.closest('tr'); // Obtiene la fila completa
+
+
+            btn.prop('disabled', true).text('Eliminando...');
+
+            $.ajax({
+                url: '{% url "scompras:eliminar_detalle_solicitud" detalle_id=0 %}'.replace('0', detalleId), // Usa la URL de eliminación
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': csrftoken 
+                },
+                success: function (response) {
+                    if (response.success) {
+                       
+                        // Eliminar la fila de la tabla
+                        row.remove();
+                        // Verificar si la tabla queda vacía
+                        checkEmptyTable();
+
+                        // Opcional: Recargar la tabla inferior (catálogo) para que el insumo aparezca de nuevo
+                        if (typeof tablaInsumos !== 'undefined') {
+                            tablaInsumos.ajax.reload(null, false);
+                        }
+                    } else {
+                        alert('Error al eliminar insumo: ' + response.error);
+                        btn.prop('disabled', false).text('Eliminar');
+                    }
+                },
+// ... dentro de $.ajax({ ...
+                error: function (xhr, status, error) {
+                    // Muestra el código de estado (404, 500, 403, etc.)
+                    alert('Ocurrió un error en la comunicación con el servidor. Código: ' + xhr.status);
+                    btn.prop('disabled', false).text('Eliminar');
+                }
+// ...
+            });
+        });
+
+
     });
-  }
-
-  // Agregar event listeners a botones agregar insumo
-  document.querySelectorAll('.btn-agregar').forEach(boton => {
-    boton.addEventListener('click', () => {
-      const insumoData = {
-        codigo_insumo: boton.getAttribute('data-codigo'),
-        nombre: boton.getAttribute('data-nombre'),
-        caracteristicas: boton.getAttribute('data-caracteristicas'),
-        nombre_presentacion: boton.getAttribute('data-presentacion'),
-        cantidad_unidad_presentacion: boton.getAttribute('data-cantidad'),
-        codigo_presentacion: boton.getAttribute('data-codigo-presentacion')
-      };
-
-      fetch("{% url 'scompras:agregar_insumo_solicitud' %}", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: new URLSearchParams({
-          'solicitud_id': solicitudId,
-          'codigo_presentacion': insumoData.codigo_presentacion.trim(),
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if(data.success) {
-          // 'data.insumo_id' esperado en respuesta para el id del detalle guardado
-          agregarFila(insumoData, data.insumo_id);
-        } else {
-          alert(data.error || 'Error al agregar insumo.');
-        }
-      })
-      .catch(() => alert('Error en la comunicación con el servidor.'));
-    });
-  });
-
-  // Agregar listeners a botones eliminar ya presentes al cargar la página
-  document.querySelectorAll('.btn-eliminar').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const fila = this.closest('tr');
-      const insumoId = this.dataset.id;
-
-      fetch(`/scompras/eliminar-insumo/${insumoId}/`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token }}',
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          fila.remove();
-          // Mostrar mensaje si ya no hay filas
-          if (tbodyInsumosAgregados.children.length === 0) {
-            tbodyInsumosAgregados.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">No hay insumos agregados aún.</td></tr>`;
-          }
-        } else {
-          alert(data.error || 'No se pudo eliminar el insumo.');
-        }
-      })
-      .catch(() => {
-        alert('Error de red al eliminar insumo.');
-      });
-    });
-  });
-
-});
 </script>
 
 {% endblock %}

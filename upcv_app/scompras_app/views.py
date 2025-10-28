@@ -335,16 +335,29 @@ class SolicitudCompraDetailView(DetailView):
         context['ultima_fecha_insumo'] = FechaInsumo.objects.last()
 
         return context
-    
-    
+
 @require_POST
-def eliminar_insumo_solicitud(request, pk):
+def eliminar_detalle_solicitud(request, detalle_id):
+    """
+    Elimina un InsumoSolicitud (detalle de insumo) de una solicitud de compra.
+    """
     try:
-        detalle = InsumoSolicitud.objects.get(pk=pk)
+        # Usamos InsumoSolicitud en lugar de DetalleSolicitud
+        detalle = get_object_or_404(InsumoSolicitud, pk=detalle_id)
+        
+        # Lógica de eliminación
         detalle.delete()
+
         return JsonResponse({'success': True})
+    
+    # Asegúrate de atrapar la excepción correcta (InsumoSolicitud.DoesNotExist)
     except InsumoSolicitud.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Insumo no encontrado'})    
+        return JsonResponse({'success': False, 'error': 'El insumo no existe.'}, status=404)
+    
+    except Exception as e:
+        print("ERROR EN LA VISTA DE ELIMINACIÓN:", e) 
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 from django.forms.models import model_to_dict
 
@@ -364,9 +377,12 @@ def agregar_insumo_solicitud(request):
         if InsumoSolicitud.objects.filter(solicitud=solicitud, insumo=insumo).exists():
             return JsonResponse({'success': False, 'error': 'Este insumo ya está agregado.'})
 
-        InsumoSolicitud.objects.create(solicitud=solicitud, insumo=insumo)
+        # Capturar el objeto creado
+        insumo_solicitud = InsumoSolicitud.objects.create(solicitud=solicitud, insumo=insumo)
+        # 🔑 Nuevo: Obtener el ID del detalle
+        detalle_id = insumo_solicitud.id 
 
-        # Devuelve datos necesarios para renderizar fila (puedes ajustar los campos)
+        # Devuelve datos necesarios para renderizar fila
         insumo_data = {
             'codigo_insumo': insumo.codigo_insumo,
             'nombre': insumo.nombre,
@@ -376,15 +392,13 @@ def agregar_insumo_solicitud(request):
             'codigo_presentacion': insumo.codigo_presentacion,
         }
 
-        return JsonResponse({'success': True, 'insumo': insumo_data})
+        # 🔑 Nuevo: Incluir el ID del detalle en la respuesta
+        return JsonResponse({'success': True, 'insumo': insumo_data, 'detalle_id': detalle_id})
 
     except SolicitudCompra.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Solicitud no encontrada.'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
-
-
-
 
 
 
@@ -556,6 +570,26 @@ def descargar_insumos_excel(request):
     wb.save(response)
     return response
 
+def insumos_disponibles_json(request):
+    """
+    Retorna la lista completa de insumos disponibles en formato JSON.
+    Ideal para cargar una tabla simple o un DataTables sin server-side processing
+    si la cantidad de datos es manejable (cientos o pocos miles).
+    """
+    insumos_queryset = Insumo.objects.all().order_by('nombre')
+    
+    data = []
+    for insumo in insumos_queryset:
+        data.append({
+            'codigo_insumo': insumo.codigo_insumo,
+            'nombre': insumo.nombre,
+            'caracteristicas': insumo.caracteristicas if insumo.caracteristicas else '-',
+            'nombre_presentacion': insumo.nombre_presentacion,
+            'cantidad_unidad_presentacion': insumo.cantidad_unidad_presentacion,
+            'codigo_presentacion': insumo.codigo_presentacion,
+        })
+
+    return JsonResponse({'data': data})
 
 @csrf_exempt  # Si estás teniendo problemas con CSRF en peticiones Ajax, puedes usar esto temporalmente
 def insumos_json(request):
