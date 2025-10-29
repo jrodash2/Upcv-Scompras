@@ -36,6 +36,8 @@ urlpatterns = [
     path('departamentos/', views.lista_departamentos, name='lista_departamentos'),
     path('departamento/<int:pk>/', views.detalle_departamento, name='detalle_departamento'),
     path('departamento/<int:departamento_id>/seccion/<int:seccion_id>/', views.detalle_seccion, name='detalle_seccion'),
+    path('secciones/', views.crear_seccion, name='crear_seccion'),
+    path('secciones/editar/<int:pk>/', views.crear_seccion, name='editar_seccion'),
 
     path('ajax/cargar-secciones/', views.ajax_cargar_secciones, name='ajax_cargar_secciones'),
     path('ajax/cargar_subproductos/', views.ajax_cargar_subproductos, name='ajax_cargar_subproductos'),

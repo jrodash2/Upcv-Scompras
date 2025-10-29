@@ -14,7 +14,7 @@ from django.urls import reverse
 import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
-from .form import ExcelUploadForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
+from .form import ExcelUploadForm, SeccionForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
 from .models import  FechaInsumo, Producto, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
@@ -267,6 +267,28 @@ def editar_departamento(request, pk):
     return render(request, 'scompras/editar_departamento.html', {'form': form, 'departamentos': Departamento.objects.all()})
 
 
+def crear_seccion(request, pk=None):
+    if pk:
+        seccion = get_object_or_404(Seccion, pk=pk)
+        form = SeccionForm(request.POST or None, instance=seccion)
+        mensaje_exito = "Sección actualizada correctamente."
+    else:
+        seccion = None
+        form = SeccionForm(request.POST or None)
+        mensaje_exito = "Sección creada correctamente."
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, mensaje_exito)
+        return redirect('scompras:crear_seccion')
+
+    secciones = Seccion.objects.select_related('departamento').all()
+
+    context = {
+        'form': form,
+        'secciones': secciones,
+    }
+    return render(request, 'scompras/crear_seccion.html', context)
 
 @login_required
 @grupo_requerido('Administrador', 'scompras')
@@ -351,19 +373,43 @@ class SolicitudCompraDetailView(DetailView):
         return context
 
 
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.db.models import Count
 
 @receiver(pre_save, sender=SolicitudCompra)
 def generar_codigo_correlativo(sender, instance, **kwargs):
-    if not instance.codigo_correlativo:
-        año = instance.fecha_solicitud.year
-        dept_abrev = instance.seccion.departamento.abreviatura
-        secc_abrev = instance.seccion.abreviatura
-        # Contar solicitudes existentes en esa sección y año
+    # Asegurarse de que 'fecha_solicitud' esté definida antes de acceder al año
+    if not instance.fecha_solicitud:
+        return  # Si no hay fecha, no generar el código
+
+    año = instance.fecha_solicitud.year
+
+    # Obtener la abreviatura del departamento y sección
+    dept_abrev = instance.seccion.departamento.abreviatura if instance.seccion else "GEN"
+    secc_abrev = instance.seccion.abreviatura if instance.seccion else None
+
+    # Contar solicitudes existentes en esa sección y año
+    if instance.seccion:
         count = SolicitudCompra.objects.filter(
             seccion=instance.seccion,
             fecha_solicitud__year=año
-        ).count() + 1
+        ).exclude(id=instance.id).count() + 1
+    else:
+        # Si no hay sección, contar solicitudes sin sección en ese año
+        count = SolicitudCompra.objects.filter(
+            seccion__isnull=True,
+            usuario__usuario_departamento__departamento=instance.usuario.usuario_departamento_set.first().departamento,
+            fecha_solicitud__year=año
+        ).exclude(id=instance.id).count() + 1
+
+    # Generar el código correlativo
+    if secc_abrev and secc_abrev != dept_abrev:
+        # Si la sección tiene una abreviatura diferente al departamento, incluir la abreviatura de la sección
         instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{secc_abrev}-{año}-{count:03d}'
+    else:
+        # Si la sección es igual al departamento o no existe sección, solo usar la abreviatura del departamento
+        instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{año}-{count:03d}'
 
 
 @require_POST

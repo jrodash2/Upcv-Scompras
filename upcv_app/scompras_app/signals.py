@@ -56,31 +56,3 @@ from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
-
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-
-@receiver(pre_save, sender=SolicitudCompra)
-def generar_codigo_correlativo(sender, instance, **kwargs):
-    año = instance.fecha_solicitud.year
-    dept_abrev = instance.seccion.departamento.abreviatura if instance.seccion else "GEN"
-    secc_abrev = instance.seccion.abreviatura if instance.seccion else None
-
-    # Contar solicitudes existentes en esa sección y año
-    if instance.seccion:
-        count = SolicitudCompra.objects.filter(
-            seccion=instance.seccion,
-            fecha_solicitud__year=año
-        ).exclude(id=instance.id).count() + 1
-    else:
-        count = SolicitudCompra.objects.filter(
-            seccion__isnull=True,
-            usuario__usuario_departamento__departamento=instance.usuario.usuario_departamento_set.first().departamento,
-            fecha_solicitud__year=año
-        ).exclude(id=instance.id).count() + 1
-
-    # Generar código sin repetir abreviatura si es igual al departamento
-    if secc_abrev and secc_abrev != dept_abrev:
-        instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{secc_abrev}-{año}-{count:03d}'
-    else:
-        instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{año}-{count:03d}'

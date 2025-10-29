@@ -203,6 +203,17 @@ class DepartamentoForm(forms.ModelForm):
         for field in self.fields.values():
             field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
 
+class SeccionForm(forms.ModelForm):
+    class Meta:
+        model = Seccion
+        fields = ['nombre', 'abreviatura', 'descripcion', 'departamento', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'placeholder': 'Nombre de la Sección', 'class': 'form-control'}),
+            'abreviatura': forms.TextInput(attrs={'placeholder': 'Abreviatura', 'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'placeholder': 'Descripción', 'rows': 3, 'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-select'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
 
 class UserForm(forms.ModelForm):
     new_password = forms.CharField(
