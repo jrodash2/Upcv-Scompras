@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from django.utils.timezone import localtime
 from venv import logger
 from django.forms import IntegerField
 from django.shortcuts import render, redirect
@@ -12,7 +13,7 @@ import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .form import ExcelUploadForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import  FechaInsumo, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
+from .models import  FechaInsumo, Producto, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -319,7 +320,8 @@ def user_edit(request, user_id):
     }
     return render(request, 'scompras/user_form_edit.html', context)
 
-
+from django.utils.timezone import localtime
+from django.template.defaultfilters import date as django_date
 
 class SolicitudCompraDetailView(DetailView):
     model = SolicitudCompra
@@ -330,11 +332,21 @@ class SolicitudCompraDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         solicitud = self.get_object()
 
-        context['insumos'] = Insumo.objects.all()  # Para el formulario, si es necesario
+        # Convertir la fecha de solicitud a la zona horaria local
+        solicitud.fecha_solicitud = localtime(solicitud.fecha_solicitud)
+
+        # Formatear la fecha y agregarla al contexto
+        context['fecha_solicitud_formateada'] = django_date(solicitud.fecha_solicitud, 'j \\d\\e F \\d\\e Y')
+
+        context['insumos'] = Insumo.objects.all()
         context['detalles'] = InsumoSolicitud.objects.filter(solicitud=solicitud)
         context['ultima_fecha_insumo'] = FechaInsumo.objects.last()
+        context['productos'] = Producto.objects.filter(activo=True)
+        context['subproductos'] = Subproducto.objects.filter(activo=True)
 
         return context
+
+
 
 @require_POST
 def eliminar_detalle_solicitud(request, detalle_id):
@@ -365,6 +377,7 @@ from django.forms.models import model_to_dict
 def agregar_insumo_solicitud(request):
     solicitud_id = request.POST.get('solicitud_id')
     codigo_presentacion = request.POST.get('codigo_presentacion', '').strip()
+    cantidad = request.POST.get('cantidad')  # ✅ Capturamos cantidad del modal
 
     try:
         solicitud = SolicitudCompra.objects.get(id=solicitud_id)
@@ -372,27 +385,41 @@ def agregar_insumo_solicitud(request):
         insumos = Insumo.objects.filter(codigo_presentacion__iexact=codigo_presentacion)
         if not insumos.exists():
             return JsonResponse({'success': False, 'error': 'Insumo no encontrado por código de presentación.'})
+
         insumo = insumos.first()
 
+        # Verificamos si ya está agregado
         if InsumoSolicitud.objects.filter(solicitud=solicitud, insumo=insumo).exists():
             return JsonResponse({'success': False, 'error': 'Este insumo ya está agregado.'})
 
-        # Capturar el objeto creado
-        insumo_solicitud = InsumoSolicitud.objects.create(solicitud=solicitud, insumo=insumo)
-        # 🔑 Nuevo: Obtener el ID del detalle
+        # ✅ Convertir cantidad en entero (valor por defecto 1)
+        try:
+            cantidad = int(cantidad)
+            if cantidad <= 0:
+                cantidad = 1
+        except (TypeError, ValueError):
+            cantidad = 1
+
+        # ✅ Crear el detalle con cantidad
+        insumo_solicitud = InsumoSolicitud.objects.create(
+            solicitud=solicitud,
+            insumo=insumo,
+            cantidad=cantidad
+        )
+
         detalle_id = insumo_solicitud.id 
 
-        # Devuelve datos necesarios para renderizar fila
+        # Datos del insumo para devolver al front-end
         insumo_data = {
             'codigo_insumo': insumo.codigo_insumo,
             'nombre': insumo.nombre,
             'caracteristicas': insumo.caracteristicas or '-',
             'nombre_presentacion': insumo.nombre_presentacion,
-            'cantidad_unidad_presentacion': insumo.cantidad_unidad_presentacion,
+            'cantidad_unidad_presentacion': f"{cantidad} {insumo.cantidad_unidad_presentacion}",  # 👈 mostramos cantidad ingresada
             'codigo_presentacion': insumo.codigo_presentacion,
+            'cantidad': insumo_solicitud.cantidad,
         }
 
-        # 🔑 Nuevo: Incluir el ID del detalle en la respuesta
         return JsonResponse({'success': True, 'insumo': insumo_data, 'detalle_id': detalle_id})
 
     except SolicitudCompra.DoesNotExist:
@@ -401,6 +428,40 @@ def agregar_insumo_solicitud(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+def detalle_solicitud(request, solicitud_id):
+    solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+    detalles = InsumoSolicitud.objects.filter(solicitud=solicitud)
+    productos = Producto.objects.filter(activo=True)
+    subproductos = Subproducto.objects.filter(activo=True)
+
+    return render(request, 'scompras/detalle_solicitud.html', {
+        'solicitud': solicitud,
+        'detalles': detalles,
+        'productos': productos,
+        'subproductos': subproductos,
+    })
+
+def obtener_subproductos(request, producto_id):
+    subproductos = Subproducto.objects.filter(producto_id=producto_id, activo=True)
+    data = [{'id': s.id, 'nombre': s.nombre} for s in subproductos]
+    return JsonResponse({'subproductos': data})
+
+@require_POST
+def editar_solicitud(request):
+    try:
+        solicitud = SolicitudCompra.objects.get(id=request.POST.get('solicitud_id'))
+        solicitud.estado = request.POST.get('estado')
+        solicitud.prioridad = request.POST.get('prioridad')
+        solicitud.descripcion = request.POST.get('descripcion')
+        solicitud.producto_id = request.POST.get('producto')
+        solicitud.subproducto_id = request.POST.get('subproducto')
+        solicitud.fecha_solicitud = request.POST.get('fecha_solicitud')
+        solicitud.save()
+        return JsonResponse({'success': True})
+    except SolicitudCompra.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Solicitud no encontrada.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 @login_required
