@@ -279,29 +279,20 @@
                   
                 </li>
                 
-
-    <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
-      <a class="sidebar-link sidebar-title" href="#">
-        <svg class="stroke-icon">
-          <use href="../assets/svg/icon-sprite.svg#stroke-gallery"></use>
+  <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
+      <a class="sidebar-link " href="{% url 'scompras:lista_departamentos' %}">
+        <svg >
+          <use href="{% url 'scompras:lista_departamentos' %}"></use>
         </svg>
         <svg class="fill-icon">
-          <use href="../assets/svg/icon-sprite.svg#fill-gallery"></use>
+          <use href="{% url 'scompras:lista_departamentos' %}"></use>
         </svg>
         <span>Departamentos</span>
       </a>
-      <ul class="sidebar-submenu">
-                  <li><a href="{% url 'scompras:crear_departamento' %}">Crear Departamentos</a></li>
-           
-                   <li><a href="{% url 'scompras:asignar_departamento' %}">Asignar Departamentos</a></li>
-           <li><a href="{% url 'scompras:lista_departamentos' %}">Departamentos</a></li>
-                 <li><a href="{% url 'scompras:importar_excel' %}">Importar Insumos</a></li>
-          
-      </ul>
+
+
     </li>
   
-
-
 
     <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
       <a class="sidebar-link sidebar-title" href="#">
@@ -314,6 +305,11 @@
         <span>Configuración</span>
       </a>
       <ul class="sidebar-submenu">
+         <li><a href="{% url 'scompras:crear_departamento' %}">Crear Departamentos</a></li>
+           
+                   <li><a href="{% url 'scompras:asignar_departamento' %}">Asignar Departamentos</a></li>
+           <li><a href="{% url 'scompras:lista_departamentos' %}">Departamentos</a></li>
+                 <li><a href="{% url 'scompras:importar_excel' %}">Importar Insumos</a></li>
    <li><a href="{% url 'scompras:user_create' %}">Usuarios</a></li>
         <li><a href="{% url 'scompras:editar_institucion' %}">Institución</a></li>
         <li><a href="#">Manuales</a></li>
@@ -334,25 +330,18 @@
                     </svg><span>Dashboard</span></a>
                   
                 </li>
-                
-    <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
-      <a class="sidebar-link sidebar-title" href="#">
-        <svg class="stroke-icon">
-          <use href="../assets/svg/icon-sprite.svg#stroke-gallery"></use>
+         <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
+      <a class="sidebar-link " href="{% url 'scompras:lista_departamentos' %}">
+        <svg >
+          <use href="{% url 'scompras:lista_departamentos' %}"></use>
         </svg>
         <svg class="fill-icon">
-          <use href="../assets/svg/icon-sprite.svg#fill-gallery"></use>
+          <use href="{% url 'scompras:lista_departamentos' %}"></use>
         </svg>
         <span>Departamentos</span>
       </a>
-      <ul class="sidebar-submenu">
-                  <li><a href="{% url 'scompras:crear_departamento' %}">Crear Departamentos</a></li>
-           
-                   <li><a href="{% url 'scompras:asignar_departamento' %}">Asignar Departamentos</a></li>
-           <li><a href="{% url 'scompras:lista_departamentos' %}">Departamentos</a></li>
-      
-          
-      </ul>
+
+
     </li>
   
   {% endif %}

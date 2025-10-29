@@ -328,6 +328,20 @@ class SolicitudCompraDetailView(DetailView):
     template_name = 'scompras/detalle_solicitud.html'
     context_object_name = 'solicitud'
 
+    @property
+    def codigo_correlativo(self):
+        año = self.fecha_solicitud.year
+        dept_abrev = self.seccion.departamento.abreviatura
+        secc_abrev = self.seccion.abreviatura
+
+        # Contar cuántas solicitudes ya existen en esta sección y año
+        count = SolicitudCompra.objects.filter(
+            seccion=self.seccion,
+            fecha_solicitud__year=año
+        ).order_by('id').filter(id__lte=self.id).count()
+
+        return f'SC-{dept_abrev}-{secc_abrev}-{año}-{count:03d}'
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         solicitud = self.get_object()
@@ -346,6 +360,21 @@ class SolicitudCompraDetailView(DetailView):
 
         return context
 
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=SolicitudCompra)
+def generar_codigo_correlativo(sender, instance, **kwargs):
+    if not instance.codigo_correlativo:
+        año = instance.fecha_solicitud.year
+        dept_abrev = instance.seccion.departamento.abreviatura
+        secc_abrev = instance.seccion.abreviatura
+        # Contar solicitudes existentes en esa sección y año
+        count = SolicitudCompra.objects.filter(
+            seccion=instance.seccion,
+            fecha_solicitud__year=año
+        ).count() + 1
+        instance.codigo_correlativo = f'SC-{dept_abrev}-{secc_abrev}-{año}-{count:03d}'
 
 
 @require_POST

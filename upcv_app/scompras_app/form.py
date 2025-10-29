@@ -190,10 +190,11 @@ class UserEditForm(forms.ModelForm):
 class DepartamentoForm(forms.ModelForm):
     class Meta:
         model = Departamento
-        fields = ['id_departamento', 'nombre', 'descripcion']
+        fields = ['id_departamento', 'nombre', 'abreviatura', 'descripcion']  # <-- agregado 'abreviatura'
         widgets = {
             'id_departamento': forms.TextInput(attrs={'placeholder': 'ID del departamento', 'class': 'form-control'}),
             'nombre': forms.TextInput(attrs={'placeholder': 'Nombre del departamento', 'class': 'form-control'}),
+            'abreviatura': forms.TextInput(attrs={'placeholder': 'Abreviatura del departamento', 'class': 'form-control'}),  # <-- nuevo widget
             'descripcion': forms.Textarea(attrs={'placeholder': 'Descripción del departamento', 'rows': 4, 'cols': 40, 'class': 'form-control'}),
         }
 
@@ -201,6 +202,7 @@ class DepartamentoForm(forms.ModelForm):
         super(DepartamentoForm, self).__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs['class'] = field.widget.attrs.get('class', '') + ' form-control'
+
 
 class UserForm(forms.ModelForm):
     new_password = forms.CharField(

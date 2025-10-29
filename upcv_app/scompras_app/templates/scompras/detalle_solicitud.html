@@ -52,7 +52,10 @@
                   </td>
                   <td style="text-align: end; padding: 30px 30px 30px 0;">
                     <span style="display: block; line-height: 1.5; font-size: 18px; color: #fff; font-weight: 700;">Solicitud de Compra</span>
-                    <span style="display: block; line-height: 1.5; font-size: 18px; color: #fff; font-weight: 500;">#{{ solicitud.id }}</span>
+                  <span style="display: block; line-height: 1.5; font-size: 18px; color: #fff; font-weight: 500;">
+    {{ solicitud.codigo_correlativo }}
+</span>
+
 <span style="display: block; line-height: 1.5; font-size: 18px; color: #fff; font-weight: 500;">
     {{ fecha_solicitud_formateada }}
 </span>
@@ -80,7 +83,7 @@
                   </td>
                   <td>
                     <h4 style="font-weight: 600; margin: 12px 0 5px 0; font-size: 18px;">{{ solicitud.seccion.nombre }}</h4>
-                    <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">Departamento: {{ solicitud.seccion.departamento.nombre }}</span><br>
+                    <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">{{ solicitud.seccion.departamento.nombre }}</span><br>
                     <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">Estado: {{ solicitud.estado }}</span><br>
                     <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">Prioridad: {{ solicitud.prioridad }}</span>
                   </td>

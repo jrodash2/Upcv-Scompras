@@ -82,13 +82,24 @@
 
                 <div class="row">
                     <!-- Columna 3 -->
-                    <div class="col-md-12">
+                    <div class="col-md-10">
                         <div class="form-group">
                             <label for="{{ form.descripcion.id_for_label }}">Descripción</label>
                             {{ form.descripcion }}
                         </div>
                     </div>
+                        <!-- Columna 3 -->
+    <div class="col-md-2">
+        <div class="form-group">
+            <label for="{{ form.abreviatura.id_for_label }}">Abreviatura</label>
+            {{ form.abreviatura }}
+        </div>
+    </div>
                 </div>
+
+
+
+
                 
                 <br>
                 <div class="form-footer text-end">
@@ -107,6 +118,7 @@
                       <tr>
                         <th>ID</th>
                         <th>Nombre</th>
+                        <th>Abreviatura</th>
                         <th>Descripción</th>
                         <th>Fecha de Creación</th>
                         <th>Fecha de Actualización</th>
@@ -118,6 +130,7 @@
                       <tr>
                         <td>{{ departamento.id_departamento }}</td>
                         <td>{{ departamento.nombre }}</td>
+                        <td>{{ departamento.abreviatura }}</td>
                         <td>{{ departamento.descripcion }}</td>
                         <td>{{ departamento.fecha_creacion }}</td>
                         <td>{{ departamento.fecha_actualizacion }}</td>
@@ -131,6 +144,7 @@
                       <tr>
                         <th>ID</th>
                         <th>Nombre</th>
+                        <th>Abreviatura</th>
                         <th>Descripción</th>
                         <th>Fecha de Creación</th>
                         <th>Fecha de Actualización</th>

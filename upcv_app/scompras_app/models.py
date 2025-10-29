@@ -25,6 +25,7 @@ class Institucion(models.Model):
 class Departamento(models.Model):
     id_departamento = models.CharField(max_length=50, unique=True)  # ID personalizado del departamento
     nombre = models.CharField(max_length=255)
+    abreviatura = models.CharField(max_length=10, default='Dept')
     descripcion = models.TextField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)  # Fecha de creación automática
     fecha_actualizacion = models.DateTimeField(auto_now=True)  # Fecha de actualización automática
@@ -36,6 +37,7 @@ class Departamento(models.Model):
     
 class Seccion(models.Model):
     nombre = models.CharField(max_length=255)
+    abreviatura = models.CharField(max_length=10, default='Secc')
     descripcion = models.TextField(blank=True, null=True)
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE, related_name='secciones')
     activo = models.BooleanField(default=True)
@@ -69,6 +71,8 @@ class SolicitudCompra(models.Model):
     producto = models.ForeignKey('Producto', on_delete=models.CASCADE, null=True, blank=True)
     subproducto = models.ForeignKey('Subproducto', on_delete=models.CASCADE, null=True, blank=True)
     insumos = models.ManyToManyField('Insumo', related_name='solicitudes', blank=True)
+    codigo_correlativo = models.CharField(max_length=50, blank=True, null=True, unique=True)
+
     
     def __str__(self):
         return f'Solicitud #{self.id} - {self.estado}'
