@@ -35,55 +35,81 @@
     <!-- Contenido principal -->
     <div class="row mt-4">
 
-      <!-- Formulario -->
+      <!-- Formulario: ocupa 4 columnas -->
       <div class="col-xl-4 col-lg-4 col-md-12 col-sm-12 mb-4">
         <div class="feature-box common-card bg-feature no-bg-hover card-hover shadow">
           <div class="feature-icon">
             <img src="{% static 'assets/images/landing/feature-icon/4.svg' %}" alt="form-icon">
           </div>
           <h5 class="text-center mb-3">Nueva Solicitud de Compra</h5>
-          <form method="post">
-            {% csrf_token %}
+<form method="post">
+  {% csrf_token %}
 
-            <!-- Descripción -->
-            <div class="form-group">
-              {{ form.descripcion.label_tag }}
-              {{ form.descripcion }}
-              {% if form.descripcion.errors %}
-                <div class="text-danger">{{ form.descripcion.errors }}</div>
-              {% endif %}
-            </div>
+  <!-- Descripción: ancho completo -->
+  <div class="form-group">
+    {{ form.descripcion.label_tag }}
+    {{ form.descripcion }}
+    {% if form.descripcion.errors %}
+      <div class="text-danger">{{ form.descripcion.errors }}</div>
+    {% endif %}
+  </div>
+
+<!-- Contenedor fila para dos columnas -->
+<div class="row">
+
+  <!-- Columna izquierda -->
+  <div class="col-6">
+    <div class="mb-3">
+      {{ form.producto.label_tag }}
+      {{ form.producto }}
+      {% if form.producto.errors %}
+        <div class="text-danger">{{ form.producto.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.estado.label_tag }}
+      {{ form.estado }}
+      {% if form.estado.errors %}
+        <div class="text-danger">{{ form.estado.errors }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-6">
+    <div class="mb-3">
+      {{ form.subproducto.label_tag }}
+      {{ form.subproducto }}
+      {% if form.subproducto.errors %}
+        <div class="text-danger">{{ form.subproducto.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.prioridad.label_tag }}
+      {{ form.prioridad }}
+      {% if form.prioridad.errors %}
+        <div class="text-danger">{{ form.prioridad.errors }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
 
 
 
-            <!-- Producto -->
-            <div class="form-group mt-2">
-              {{ form.producto.label_tag }}
-              {{ form.producto }}
-              {% if form.producto.errors %}
-                <div class="text-danger">{{ form.producto.errors }}</div>
-              {% endif %}
-            </div>
+  <!-- Botón centrado -->
+  <div class="text-center">
+    <button type="submit" class="btn btn-primary mt-3">Crear Solicitud</button>
+  </div>
 
-            <!-- Subproducto -->
-            <div class="form-group mt-2">
-              {{ form.subproducto.label_tag }}
-              {{ form.subproducto }}
-              {% if form.subproducto.errors %}
-                <div class="text-danger">{{ form.subproducto.errors }}</div>
-              {% endif %}
-            </div>
+</form>
 
-            <!-- Botón -->
-            <div class="text-center">
-              <button type="submit" class="btn btn-success mt-3">Enviar Solicitud</button>
-            </div>
-
-          </form>
         </div>
       </div>
 
-      <!-- Historial de Solicitudes -->
+      <!-- Tabla: ocupa 8 columnas -->
       <div class="col-xl-8 col-lg-8 col-md-12 col-sm-12 mb-4">
         <div class="feature-box common-card bg-light no-bg-hover card-hover shadow">
           <div class="feature-icon">
@@ -97,7 +123,6 @@
                   <tr>
                     <th>Fecha</th>
                     <th>Descripción</th>
-
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -108,23 +133,21 @@
                       <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
                       <td>{{ solicitud.descripcion|truncatewords:10 }}</td>
                       <td>
-  {% if solicitud.estado == 'Creada' %}
-    <span class="badge bg-primary">Creada</span>
-  {% elif solicitud.estado == 'Rechazada' %}
-    <span class="badge bg-danger">Rechazada</span>
-  {% elif solicitud.estado == 'Finalizada' %}
-    <span class="badge bg-success">Finalizada</span>
-  {% else %}
-    <span class="badge bg-secondary">{{ solicitud.estado }}</span>
-  {% endif %}
-</td>
-<td class="text-center">
-  <a href="{% url 'scompras:detalle_solicitud' solicitud.id %}"  title="Ver detalles">
-    <i class="icon-eye"></i>
-  </a>
-</td>
-
-
+                        {% if solicitud.estado == 'Creada' %}
+                          <span class="badge bg-primary">Creada</span>
+                        {% elif solicitud.estado == 'Rechazada' %}
+                          <span class="badge bg-danger">Rechazada</span>
+                        {% elif solicitud.estado == 'Finalizada' %}
+                          <span class="badge bg-success">Finalizada</span>
+                        {% else %}
+                          <span class="badge bg-secondary">{{ solicitud.estado }}</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <a href="{% url 'scompras:detalle_solicitud' solicitud.id %}" title="Ver detalles">
+                          <i class="icon-eye"></i>
+                        </a>
+                      </td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -135,6 +158,7 @@
           {% endif %}
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -208,7 +232,6 @@ $('#id_producto').change(function () {
     }
   });
 });
-
 </script>
 
 {% endblock %}

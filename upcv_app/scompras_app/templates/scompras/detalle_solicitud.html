@@ -237,24 +237,22 @@
     {% endfor %}
   </select>
 </div>
+<div class="col-md-6 mb-3">
+<select id="id_estado" name="estado" class="form-select">Creada</option>
+  <option value="Finalizada" {% if solicitud.estado == 'Finalizada' %}selected{% endif %}>Finalizada</option>
+  <option value="Rechazada" {% if solicitud.estado == 'Rechazada' %}selected{% endif %}>Rechazada</option>
+</select>
+</div>
+<div class="col-md-6 mb-3">
+<select id="id_prioridad" name="prioridad" class="form-select">
+  <option value="Baja" {% if solicitud.prioridad == 'Baja' %}selected{% endif %}>Baja</option>
+  <option value="Media" {% if solicitud.prioridad == 'Media' %}selected{% endif %}>Media</option>
+  <option value="Alta" {% if solicitud.prioridad == 'Alta' %}selected{% endif %}>Alta</option>
+</select>
+</div>
 
-            <div class="col-md-6 mb-3">
-              <label for="id_estado" class="form-label fw-semibold">Estado:</label>
-              <select id="id_estado" name="estado" class="form-select">
-                <option value="Pendiente" {% if solicitud.estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
-                <option value="Aprobada" {% if solicitud.estado == "Aprobada" %}selected{% endif %}>Aprobada</option>
-                <option value="Rechazada" {% if solicitud.estado == "Rechazada" %}selected{% endif %}>Rechazada</option>
-              </select>
-            </div>
 
-            <div class="col-md-6 mb-3">
-              <label for="id_prioridad" class="form-label fw-semibold">Prioridad:</label>
-              <select id="id_prioridad" name="prioridad" class="form-select">
-                <option value="Alta" {% if solicitud.prioridad == "Alta" %}selected{% endif %}>Alta</option>
-                <option value="Media" {% if solicitud.prioridad == "Media" %}selected{% endif %}>Media</option>
-                <option value="Baja" {% if solicitud.prioridad == "Baja" %}selected{% endif %}>Baja</option>
-              </select>
-            </div>
+
 
             <div class="col-md-8 mb-3">
               <label for="id_descripcion" class="form-label fw-semibold">Justificación:</label>
@@ -377,6 +375,60 @@
 <script src="{% static 'assets/js/jquery.min.js' %}"></script>
 <script src="{% static 'assets/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const btnGuardar = document.getElementById("btnGuardarEdicion");
+
+    btnGuardar.addEventListener("click", function() {
+        guardarCambiosSolicitud();
+    });
+});
+
+function guardarCambiosSolicitud() {
+    const form = document.getElementById("formEditarSolicitud");
+    const formData = new FormData(form);
+
+    fetch("{% url 'scompras:editar_solicitud' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mensaje bonito con SweetAlert o alert normal
+            {% comment %} alert("✅ Solicitud actualizada correctamente."); {% endcomment %}
+
+            // Cierra el modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarSolicitud'));
+            modal.hide();
+
+            // Opcional: recargar tabla o página
+            setTimeout(() => location.reload(), 500);
+        } else {
+            if (data.errors) {
+                mostrarErrores(data.errors);
+            } else {
+                alert("❌ Error: " + data.error);
+            }
+        }
+    })
+    .catch(error => console.error("Error en la solicitud:", error));
+}
+
+function mostrarErrores(errors) {
+    // Muestra los errores del formulario en consola o alerta
+    let mensaje = "Errores encontrados:\n";
+    for (let campo in errors) {
+        mensaje += `- ${campo}: ${errors[campo].join(", ")}\n`;
+    }
+    alert(mensaje);
+}
+</script>
+
 
 <script>
 // --- Cargar subproductos al cambiar de producto ---

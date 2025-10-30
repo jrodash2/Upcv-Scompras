@@ -510,22 +510,25 @@ def obtener_subproductos(request, producto_id):
     data = [{'id': s.id, 'nombre': s.nombre} for s in subproductos]
     return JsonResponse({'subproductos': data})
 
+
 @require_POST
 def editar_solicitud(request):
     try:
         solicitud = SolicitudCompra.objects.get(id=request.POST.get('solicitud_id'))
-        solicitud.estado = request.POST.get('estado')
-        solicitud.prioridad = request.POST.get('prioridad')
-        solicitud.descripcion = request.POST.get('descripcion')
-        solicitud.producto_id = request.POST.get('producto')
-        solicitud.subproducto_id = request.POST.get('subproducto')
-        solicitud.fecha_solicitud = request.POST.get('fecha_solicitud')
-        solicitud.save()
-        return JsonResponse({'success': True})
     except SolicitudCompra.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Solicitud no encontrada.'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+
+    form = SolicitudCompraForm(request.POST, instance=solicitud)
+
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False, 'errors': form.errors})
+
+
+
+
 
 
 @login_required

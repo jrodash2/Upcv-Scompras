@@ -315,38 +315,38 @@ class PerfilForm(forms.ModelForm):
             'foto': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
   
+from django import forms
+from .models import SolicitudCompra, Subproducto
 
 class SolicitudCompraForm(forms.ModelForm):
     class Meta:
         model = SolicitudCompra
-        fields = ['descripcion', 'producto', 'subproducto']
+        fields = ['descripcion', 'producto', 'subproducto', 'estado', 'prioridad', 'fecha_solicitud']
         widgets = {
             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
             'producto': forms.Select(attrs={'class': 'form-control', 'id': 'id_producto'}),
             'subproducto': forms.Select(attrs={'class': 'form-control', 'id': 'id_subproducto'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+            'prioridad': forms.Select(attrs={'class': 'form-control'}),
+            'fecha_solicitud': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['estado'].choices = SolicitudCompra.ESTADOS
+        self.fields['prioridad'].choices = SolicitudCompra.PRIORIDADES
         self.fields['subproducto'].queryset = Subproducto.objects.none()
 
-        # Primero, si viene producto en data (POST o GET)
+        # Para el autollenado de subproductos según el producto seleccionado
         if 'producto' in self.data:
             try:
                 producto_id = int(self.data.get('producto'))
                 self.fields['subproducto'].queryset = Subproducto.objects.filter(producto_id=producto_id)
             except (ValueError, TypeError):
                 pass
-        # Segundo, si la instancia ya tiene producto relacionado (edición)
         elif self.instance.pk and self.instance.producto:
             self.fields['subproducto'].queryset = self.instance.producto.subproductos.all()
-        # Tercero, si en initial o kwargs se pasa un producto, cargar también subproductos
-        elif 'initial' in kwargs and 'producto' in kwargs['initial']:
-            try:
-                producto_id = int(kwargs['initial']['producto'])
-                self.fields['subproducto'].queryset = Subproducto.objects.filter(producto_id=producto_id)
-            except (ValueError, TypeError):
-                pass
+
 
 
 
