@@ -62,8 +62,9 @@ import re
 from django.views.generic.detail import DetailView
 from django.core.mail import BadHeaderError
 from smtplib import SMTPException
-
-    
+from django.db.models import Count
+from django.db.models.functions import ExtractYear, ExtractMonth
+from datetime import date
     
 @login_required
 @grupo_requerido('Administrador')
@@ -590,14 +591,41 @@ from django.utils import timezone
 from django.db.models import Count, Q, Sum
 import json
 
-@login_required
-@grupo_requerido('Administrador', 'scompras')
+
 def dahsboard(request):
+    # Agrupar solicitudes por sección y año
+    solicitudes_por_anio = (
+        SolicitudCompra.objects
+        .annotate(anio=ExtractYear('fecha_solicitud'))
+        .values('seccion__nombre', 'anio')  # Agrupar por nombre de sección
+        .annotate(total=Count('id'))  # Cuenta las solicitudes por cada sección y año
+        .order_by('anio', 'seccion__nombre')
+    )
 
+    # Agrupar solicitudes por sección y mes (del año actual)
+    anio_actual = date.today().year
 
+    solicitudes_por_mes = (
+        SolicitudCompra.objects
+        .filter(fecha_solicitud__year=anio_actual)
+        .annotate(mes=ExtractMonth('fecha_solicitud'))
+        .values('seccion__nombre', 'mes')  # Agrupar por nombre de sección
+        .annotate(total=Count('id'))
+        .order_by('mes', 'seccion__nombre')
+    )
 
-    return render(request, 'scompras/dashboard.html')
+    # Obtener la lista de años disponibles en las solicitudes
+    anios_disponibles = SolicitudCompra.objects.annotate(anio=ExtractYear('fecha_solicitud')).values('anio').distinct().order_by('anio')
+    anios_list = [anio['anio'] for anio in anios_disponibles]
 
+    context = {
+        'solicitudes_por_anio': list(solicitudes_por_anio),
+        'solicitudes_por_mes': list(solicitudes_por_mes),
+        'anio_actual': anio_actual,
+        'anios': anios_list,  # Pasamos la lista de años disponibles
+    }
+
+    return render(request, 'scompras/dahsboard.html', context)
 
 def acceso_denegado(request, exception=None):
     return render(request, 'scompras/403.html', status=403)
