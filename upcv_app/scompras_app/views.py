@@ -530,48 +530,68 @@ def editar_solicitud(request):
     else:
         return JsonResponse({'success': False, 'errors': form.errors})
 
-
 @login_required
 @csrf_exempt
 def finalizar_solicitud(request):
     if request.method == "POST":
         try:
+            # Cargar los datos JSON del cuerpo de la solicitud
             data = json.loads(request.body)
             solicitud_id = data.get("solicitud_id")
 
-            # ✅ Cambiado: antes era Solicitud.objects.get(...)
-            solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+            if not solicitud_id:
+                return JsonResponse({"success": False, "error": "ID de solicitud no proporcionado"})
 
+            # Obtener la solicitud con el ID proporcionado, si no existe, devolver un error 404
+            solicitud = get_object_or_404(SolicitudCompra, id=solicitud_id)
+
+            # Verificar si la solicitud tiene un estado válido para ser finalizada
+            if solicitud.estado not in ['Creada', 'Rechazada']:
+                return JsonResponse({"success": False, "error": f"Estado de la solicitud debe ser 'Creada' o 'Rechazada' para poder finalizarla."})
+
+            # Actualizar el estado a "Finalizada"
             solicitud.estado = "Finalizada"
-            solicitud.save()
+            # Guardar solo el campo 'estado' sin afectar otros campos como el 'codigo_correlativo'
+            solicitud.save(update_fields=['estado'])
 
             return JsonResponse({"success": True})
-        except SolicitudCompra.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Solicitud no encontrada"})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Método no permitido"})
+
 
 @login_required
 @csrf_exempt
 def rechazar_solicitud(request):
     if request.method == "POST":
         try:
+            # Cargar los datos JSON del cuerpo de la solicitud
             data = json.loads(request.body)
             solicitud_id = data.get("solicitud_id")
 
-            solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+            if not solicitud_id:
+                return JsonResponse({"success": False, "error": "ID de solicitud no proporcionado"})
+
+            # Obtener la solicitud con el ID proporcionado, si no existe, devolver un error 404
+            solicitud = get_object_or_404(SolicitudCompra, id=solicitud_id)
+
+            # Verificar si la solicitud tiene un estado válido para ser rechazada
+            if solicitud.estado not in ['Creada', 'Finalizada']:
+                return JsonResponse({"success": False, "error": f"Estado de la solicitud debe ser 'Creada' o 'Finalizada' para poder rechazarla."})
+
+            # Actualizar el estado a "Rechazada"
             solicitud.estado = "Rechazada"
-            solicitud.save()
+            # Guardar solo el campo 'estado' sin afectar otros campos como el 'codigo_correlativo'
+            solicitud.save(update_fields=['estado'])
 
             return JsonResponse({"success": True})
-        except SolicitudCompra.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Solicitud no encontrada"})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Método no permitido"})
+
+
 
 def generar_pdf_solicitud(request, solicitud_id):
     # Obtener la solicitud desde la base de datos

@@ -62,7 +62,7 @@
 <button id="btnRechazar" type="button" 
         class="btn btn-sm"
         style="margin-top: 10px; margin-left: 10px; background-color: #ffffff; color: #0068ab; font-weight: 600; border: none; border-radius: 5px; padding: 6px 12px; cursor:pointer;">
-  ❌ Rechazar Solicitud
+  ❌ Anular Solicitud
 </button>
 
 <!-- Botón Ver PDF (Solo cuando el estado es "Finalizada" o "Rechazada") -->
@@ -114,7 +114,15 @@
                   <td>
                     <h4 style="font-weight: 600; margin: 12px 0 5px 0; font-size: 18px;">{{ solicitud.seccion.nombre }}</h4>
                     <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">{{ solicitud.seccion.departamento.nombre }}</span><br>
-                    <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">Estado: {{ solicitud.estado }}</span><br>
+                   <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">
+    Estado: 
+    {% if solicitud.estado == 'Rechazada' %}
+        Anulada
+    {% else %}
+        {{ solicitud.estado }}
+    {% endif %}
+</span><br>
+
                     <span style="line-height: 1.5; font-size: 14px; font-weight: 400; opacity: 0.8;">Prioridad: {{ solicitud.prioridad }}</span>
                   </td>
                 </tr>
@@ -166,11 +174,12 @@
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_presentacion }}</td>
                       <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
-
+{% if solicitud.estado != 'Finalizada' or solicitud.estado == 'Rechazada' %}
 <button type="button" class="btn-eliminar" data-id="{{ detalle.id }}"
   style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
   Eliminar
 </button>
+{% endif %}
                       </td>
                     </tr>
                   {% endfor %}
@@ -189,7 +198,7 @@
     </table>
   </div>
 
-
+{% if solicitud.estado != 'Finalizada' and solicitud.estado != 'Rechazada' %}
 <div class="card-body">
       <div class="table-responsive">
         <table class="display table" id="basic-1" style="width:100%">
@@ -211,7 +220,8 @@
       </div>
     </div>
   </div>
- 
+ {% endif %}
+
 </div>
 
 <!-- Modal Editar Solicitud -->
@@ -443,7 +453,7 @@ document.addEventListener("DOMContentLoaded", function() {
         headers: {'X-CSRFToken': csrftoken},
         success: function(response) {
             if (response.success) {
-                showModalAlert('La solicitud fue rechazada correctamente.', 'Acción realizada');
+                showModalAlert('La solicitud fue anulada correctamente.', 'Acción realizada');
                 setTimeout(() => location.reload(), 1000);
             } else {
                 showModalAlert('Error: ' + response.error, 'No se pudo actualizar');
@@ -637,6 +647,7 @@ function showModalAlert(mensaje, subtitulo = "Notificación del sistema") {
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
                 <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
+                
                     <button type="button" class="btn-eliminar" data-id="${detalleId}"
                       style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
                       Eliminar

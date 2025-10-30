@@ -138,7 +138,13 @@
           {% if solicitud.estado == 'Creada' %}
             <span class="badge bg-primary">Creada</span>
           {% elif solicitud.estado == 'Rechazada' %}
-            <span class="badge bg-danger">Rechazada</span>
+                     <span class="badge bg-secondary">
+    {% if solicitud.estado == 'Rechazada' %}
+        Anulada
+    {% else %}
+        {{ solicitud.estado }}
+    {% endif %}
+</span>
           {% elif solicitud.estado == 'Finalizada' %}
             <span class="badge bg-success">Finalizada</span>
           {% else %}
@@ -201,7 +207,13 @@
                 {% if solicitud.estado == 'Creada' %}
                   <span class="badge bg-primary">Creada</span>
                 {% elif solicitud.estado == 'Rechazada' %}
-                  <span class="badge bg-danger">Rechazada</span>
+                           <span class="badge bg-secondary">
+    {% if solicitud.estado == 'Rechazada' %}
+        Anulada
+    {% else %}
+        {{ solicitud.estado }}
+    {% endif %}
+</span>
                 {% elif solicitud.estado == 'Finalizada' %}
                   <span class="badge bg-success">Finalizada</span>
                 {% else %}
