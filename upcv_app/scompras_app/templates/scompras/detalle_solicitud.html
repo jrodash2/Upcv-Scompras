@@ -65,6 +65,19 @@
   ❌ Rechazar Solicitud
 </button>
 
+<!-- Botón Ver PDF (Solo cuando el estado es "Finalizada" o "Rechazada") -->
+{% if solicitud.estado == 'Finalizada' or solicitud.estado == 'Rechazada' %}
+  <button id="btnVerPDF" type="button" 
+          class="btn btn-sm"
+          style="margin-top: 10px; margin-left: 10px; background-color: #ffffff; color: #0068ab; font-weight: 600; border: none; border-radius: 5px; padding: 6px 12px; cursor:pointer;"
+          onclick="window.open('{% url 'scompras:generar_pdf_solicitud' solicitud.id %}', '_blank')">
+    🖨️ Imprimir Solicitud
+  </button>
+{% endif %}
+
+
+
+
 
                   </td>
                   <td style="text-align: end; padding: 30px 30px 30px 0;">
@@ -387,6 +400,37 @@
 <script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
 
 <script>
+document.addEventListener("DOMContentLoaded", function() {
+  const btnImprimir = document.getElementById("btnImprimir");
+
+  // Al hacer clic en el botón de imprimir
+  btnImprimir.addEventListener("click", function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Capturamos la parte de la página que deseas imprimir, excepto la tabla de abajo
+    const content = document.querySelector(".page-body").cloneNode(true);
+    const tableToRemove = content.querySelector("#basic-1");
+    if (tableToRemove) {
+      tableToRemove.remove(); // Eliminamos la tabla que no quieres incluir
+    }
+
+    // Convertir el contenido en PDF
+    doc.html(content, {
+      callback: function (doc) {
+        doc.save("solicitud_compra.pdf"); // Guardar el archivo
+      },
+      margin: [10, 10, 10, 10],
+      x: 10,
+      y: 10
+    });
+  });
+});
+
+
+
+
+
 
   $('#btnRechazar').on('click', function() {
     const solicitudId = $('#solicitud-id').val();

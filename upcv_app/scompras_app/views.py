@@ -65,7 +65,10 @@ from smtplib import SMTPException
 from django.db.models import Count
 from django.db.models.functions import ExtractYear, ExtractMonth
 from datetime import date
-    
+from xhtml2pdf import pisa
+from io import BytesIO
+
+
 @login_required
 @grupo_requerido('Administrador')
 def editar_institucion(request):
@@ -570,8 +573,42 @@ def rechazar_solicitud(request):
 
     return JsonResponse({"success": False, "error": "Método no permitido"})
 
+def generar_pdf_solicitud(request, solicitud_id):
+    # Obtener la solicitud desde la base de datos
+    solicitud = SolicitudCompra.objects.get(id=solicitud_id)
 
+    # Obtener los detalles de los insumos asociados a la solicitud
+    detalles = InsumoSolicitud.objects.filter(solicitud=solicitud)
 
+    # Obtener todos los insumos si es necesario
+    insumos = Insumo.objects.all()
+
+    # Crear el contexto para pasar al template
+    context = {
+        'solicitud': solicitud,
+        'detalles': detalles,
+        'insumos': insumos,
+        
+    }
+
+    # Renderizar el template a HTML con el contexto
+    html = render_to_string('scompras/solicitud_pdf.html', context)
+
+    # Crear un buffer de memoria para generar el PDF
+    buffer = BytesIO()
+
+    # Convertir el HTML a PDF usando xhtml2pdf
+    pdf = pisa.pisaDocument(BytesIO(html.encode('utf-8')), buffer)
+
+    if pdf.err:
+        return HttpResponse("Error al generar el PDF", status=500)
+
+    # Generar la respuesta HTTP para abrir el PDF en una nueva ventana
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="solicitud.pdf"'  # Cambiar 'attachment' por 'inline'
+    response.write(buffer.getvalue())
+
+    return response
 
 @login_required
 @grupo_requerido('Administrador', 'scompras')
