@@ -14,7 +14,7 @@ from django.urls import reverse
 import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
-from .form import ExcelUploadForm, SeccionForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
+from .form import ExcelUploadForm, SeccionForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, SolicitudCompraFormcrear, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
 from .models import  FechaInsumo, Producto, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
 from django.views.generic import CreateView
 from django.views.generic import ListView
@@ -181,34 +181,27 @@ def lista_departamentos(request):
 
 
 
-
-
-
 @login_required
 def detalle_seccion(request, departamento_id, seccion_id):
     seccion = get_object_or_404(Seccion, pk=seccion_id, departamento__id=departamento_id)
     user = request.user
 
-    # Obtener los nombres de los grupos del usuario
     grupos_usuario = list(user.groups.values_list('name', flat=True))
-
     es_admin = 'Administrador' in grupos_usuario
     es_scompras = 'scompras' in grupos_usuario
 
-    # Si no es admin ni scompras, verificar si está asignado al departamento y sección
     if not (es_admin or es_scompras):
         tiene_acceso = UsuarioDepartamento.objects.filter(
             usuario=user,
             departamento=seccion.departamento,
             seccion=seccion
         ).exists()
-
         if not tiene_acceso:
             return render(request, 'scompras/403.html', status=403)
 
     # Manejo del formulario
     if request.method == 'POST':
-        form = SolicitudCompraForm(request.POST)
+        form = SolicitudCompraFormcrear(request.POST)
         if form.is_valid():
             solicitud = form.save(commit=False)
             solicitud.usuario = user
@@ -217,20 +210,27 @@ def detalle_seccion(request, departamento_id, seccion_id):
             solicitud.save()
             messages.success(request, "Solicitud creada exitosamente.")
             return redirect('scompras:detalle_seccion', departamento_id=departamento_id, seccion_id=seccion_id)
+        else:
+            # Debug: errores en consola
+            print(form.errors)
+            messages.error(request, "Por favor corrige los errores en el formulario.")
     else:
-        form = SolicitudCompraForm()
+        form = SolicitudCompraFormcrear()
 
     solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')[:10]
     secciones = seccion.departamento.secciones.filter(activo=True)
+    todas_solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')
+
 
     context = {
         'seccion': seccion,
         'form': form,
         'solicitudes': solicitudes,
+        'todas_solicitudes': todas_solicitudes, 
         'secciones': secciones,
     }
-
     return render(request, 'scompras/detalle_seccion.html', context)
+
 
 
 
@@ -527,6 +527,47 @@ def editar_solicitud(request):
         return JsonResponse({'success': False, 'errors': form.errors})
 
 
+@login_required
+@csrf_exempt
+def finalizar_solicitud(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            solicitud_id = data.get("solicitud_id")
+
+            # ✅ Cambiado: antes era Solicitud.objects.get(...)
+            solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+
+            solicitud.estado = "Finalizada"
+            solicitud.save()
+
+            return JsonResponse({"success": True})
+        except SolicitudCompra.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Solicitud no encontrada"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
+@login_required
+@csrf_exempt
+def rechazar_solicitud(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            solicitud_id = data.get("solicitud_id")
+
+            solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+            solicitud.estado = "Rechazada"
+            solicitud.save()
+
+            return JsonResponse({"success": True})
+        except SolicitudCompra.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Solicitud no encontrada"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
 
 
 

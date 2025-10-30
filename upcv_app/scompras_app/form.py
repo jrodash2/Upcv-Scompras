@@ -321,19 +321,19 @@ from .models import SolicitudCompra, Subproducto
 class SolicitudCompraForm(forms.ModelForm):
     class Meta:
         model = SolicitudCompra
-        fields = ['descripcion', 'producto', 'subproducto', 'estado', 'prioridad', 'fecha_solicitud']
+        fields = ['descripcion', 'producto', 'subproducto', 'prioridad', 'fecha_solicitud']
         widgets = {
             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
             'producto': forms.Select(attrs={'class': 'form-control', 'id': 'id_producto'}),
             'subproducto': forms.Select(attrs={'class': 'form-control', 'id': 'id_subproducto'}),
-            'estado': forms.Select(attrs={'class': 'form-control'}),
+           
             'prioridad': forms.Select(attrs={'class': 'form-control'}),
             'fecha_solicitud': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['estado'].choices = SolicitudCompra.ESTADOS
+      
         self.fields['prioridad'].choices = SolicitudCompra.PRIORIDADES
         self.fields['subproducto'].queryset = Subproducto.objects.none()
 
@@ -347,6 +347,35 @@ class SolicitudCompraForm(forms.ModelForm):
         elif self.instance.pk and self.instance.producto:
             self.fields['subproducto'].queryset = self.instance.producto.subproductos.all()
 
+
+class SolicitudCompraFormcrear(forms.ModelForm):
+    class Meta:
+        model = SolicitudCompra
+        fields = ['descripcion', 'producto', 'subproducto', 'prioridad']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+            'producto': forms.Select(attrs={'class': 'form-control', 'id': 'id_producto'}),
+            'subproducto': forms.Select(attrs={'class': 'form-control', 'id': 'id_subproducto'}),
+            'estado': forms.Select(attrs={'class': 'form-control'}),
+            'prioridad': forms.Select(attrs={'class': 'form-control'}),
+         
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+       
+        self.fields['prioridad'].choices = SolicitudCompra.PRIORIDADES
+        self.fields['subproducto'].queryset = Subproducto.objects.none()
+
+        # Para el autollenado de subproductos según el producto seleccionado
+        if 'producto' in self.data:
+            try:
+                producto_id = int(self.data.get('producto'))
+                self.fields['subproducto'].queryset = Subproducto.objects.filter(producto_id=producto_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.producto:
+            self.fields['subproducto'].queryset = self.instance.producto.subproductos.all()
 
 
 

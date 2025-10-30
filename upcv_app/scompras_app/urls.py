@@ -45,6 +45,8 @@ urlpatterns = [
     path('solicitud/eliminar_insumo/<int:detalle_id>/', views.eliminar_detalle_solicitud, name='eliminar_detalle_solicitud'),
     path('editar-solicitud/', views.editar_solicitud, name='editar_solicitud'),
     path('subproductos/<int:producto_id>/', views.obtener_subproductos, name='obtener_subproductos'),
+    path('finalizar_solicitud/', views.finalizar_solicitud, name='finalizar_solicitud'),
+    path('rechazar_solicitud/', views.rechazar_solicitud, name='rechazar_solicitud'),
 
 
     path('insumos-disponibles-json/', views.insumos_disponibles_json, name='insumos_disponibles_json'),

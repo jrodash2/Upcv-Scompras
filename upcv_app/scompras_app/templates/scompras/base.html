@@ -99,6 +99,7 @@
           </form>
           <div class="header-logo-wrapper col-auto p-0">  
             <div class="logo-wrapper"> <a href=""><img class="img-fluid for-light" src="{% static 'assets/images/logo/logo.png' %}" alt="logo-light"><img class="img-fluid for-dark" src="{% static 'assets/images/logo/upcv.png' %}" alt="logo-dark"></a></div>
+           
             <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i></div>
           </div>
           <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
@@ -107,6 +108,7 @@
                 <h4 class="f-w-600">       Bienvenido {{user.first_name}}</h4><img class="mt-0" src="{% static 'assets/images/hand.gif' %}" alt="hand-gif">
                
               </div>
+              
             </div>
                        
             {% if frase_del_dia %}
@@ -121,6 +123,7 @@
                         {% endif %}
                     </i>
                 </span>
+                
             </div>
             <div class="motivational-quote">
         {% else %}
@@ -128,6 +131,7 @@
         
              
         </div>
+        
           </div>
           <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
             <ul class="nav-menus"> 
@@ -173,6 +177,7 @@
           <p class="mb-0 text-muted small">Sin rol</p>
         {% endfor %}
       </div>
+      
     </div>
   </div>
 
@@ -373,11 +378,13 @@
               <div class="right-arrow" id="right-arrow"><i data-feather="arrow-right"></i></div>
             </div>
           </nav>
+
         </div>
         <!-- Page Sidebar Ends-->
         
           
           {% block content %}
+          
           <!-- El contenido de la página se inyectará aquí -->
           {% endblock %}
 
@@ -428,19 +435,60 @@
 <!-- ApexCharts (para las gráficas) -->
 <script src="{% static 'assets/js/chart/apex-chart/apex-chart.js' %}"></script>
 
-<!-- Footer SIEMPRE va fuera de .page-body -->
-  <footer class="footer">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-md-12 footer-copyright text-center">
-          <p class="mb-0">Copyright <span id="currentYear"></span> © Informatica UPCV</p>
-        </div>
-      </div>
-    </div>
-  </footer>     
- 
-    <script>
-      document.getElementById('currentYear').textContent = new Date().getFullYear();
+<footer class="footer"> <div class="container-fluid"> 
+  <div class="row"> <div class="col-md-12 footer-copyright text-center"> 
+    <p class="mb-0">Copyright <span id="currentYear"></span> © Informatica UPCV</p> </div> </div> </div> 
+  </footer> 
+    <script> document.getElementById('currentYear').textContent = new Date().getFullYear(); 
+
     </script>
+
+  <!-- Cursor sutil tipo cometa -->
+<div id="cursor-trail"></div>
+
+<style>
+#cursor-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Cada partícula sutil */
+.trail {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(0, 200, 255, 0.3); /* más transparente */
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: fadeOut 0.6s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+}
+</style>
+
+<script>
+const trailContainer = document.getElementById('cursor-trail');
+
+document.addEventListener('mousemove', e => {
+  const particle = document.createElement('div');
+  particle.classList.add('trail');
+  particle.style.left = e.clientX + 'px';
+  particle.style.top = e.clientY + 'px';
+  trailContainer.appendChild(particle);
+
+  setTimeout(() => {
+    particle.remove();
+  }, 600); // coincide con la duración de la animación
+});
+</script>
+  
+
   </body>
 </html>
