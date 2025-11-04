@@ -410,10 +410,10 @@ def generar_codigo_correlativo(sender, instance, **kwargs):
     # Generar el código correlativo
     if secc_abrev and secc_abrev != dept_abrev:
         # Si la sección tiene una abreviatura diferente al departamento, incluir la abreviatura de la sección
-        instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{secc_abrev}-{año}-{count:03d}'
+        instance.codigo_correlativo = f'UPCV-{dept_abrev}-{secc_abrev}-{count:03d}-{año}'
     else:
         # Si la sección es igual al departamento o no existe sección, solo usar la abreviatura del departamento
-        instance.codigo_correlativo = f'SC-UPCV-{dept_abrev}-{año}-{count:03d}'
+        instance.codigo_correlativo = f'UPCV-{dept_abrev}-{count:03d}-{año}'
 
 
 @require_POST
