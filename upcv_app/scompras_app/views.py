@@ -483,7 +483,7 @@ def agregar_insumo_solicitud(request):
             'nombre': insumo.nombre,
             'caracteristicas': insumo.caracteristicas or '-',
             'nombre_presentacion': insumo.nombre_presentacion,
-            'cantidad_unidad_presentacion': f"{cantidad} {insumo.cantidad_unidad_presentacion}",  # 👈 mostramos cantidad ingresada
+            'cantidad_unidad_presentacion': insumo.cantidad_unidad_presentacion,
             'codigo_presentacion': insumo.codigo_presentacion,
             'cantidad': insumo_solicitud.cantidad,
         }
