@@ -445,7 +445,9 @@ from django.forms.models import model_to_dict
 def agregar_insumo_solicitud(request):
     solicitud_id = request.POST.get('solicitud_id')
     codigo_presentacion = request.POST.get('codigo_presentacion', '').strip()
-    cantidad = request.POST.get('cantidad')  # ✅ Capturamos cantidad del modal
+    cantidad = request.POST.get('cantidad')
+    caracteristica = request.POST.get('caracteristica', '').strip()
+    renglon = request.POST.get('renglon', '').strip()  # <-- Nuevo
 
     try:
         solicitud = SolicitudCompra.objects.get(id=solicitud_id)
@@ -456,11 +458,9 @@ def agregar_insumo_solicitud(request):
 
         insumo = insumos.first()
 
-        # Verificamos si ya está agregado
         if InsumoSolicitud.objects.filter(solicitud=solicitud, insumo=insumo).exists():
             return JsonResponse({'success': False, 'error': 'Este insumo ya está agregado.'})
 
-        # ✅ Convertir cantidad en entero (valor por defecto 1)
         try:
             cantidad = int(cantidad)
             if cantidad <= 0:
@@ -468,24 +468,27 @@ def agregar_insumo_solicitud(request):
         except (TypeError, ValueError):
             cantidad = 1
 
-        # ✅ Crear el detalle con cantidad
         insumo_solicitud = InsumoSolicitud.objects.create(
             solicitud=solicitud,
             insumo=insumo,
-            cantidad=cantidad
+            cantidad=cantidad,
+            caracteristica_especial=caracteristica,
+            renglon=renglon
         )
 
         detalle_id = insumo_solicitud.id 
 
-        # Datos del insumo para devolver al front-end
         insumo_data = {
             'codigo_insumo': insumo.codigo_insumo,
             'nombre': insumo.nombre,
             'caracteristicas': insumo.caracteristicas or '-',
+            'caracteristica_especial': caracteristica,
             'nombre_presentacion': insumo.nombre_presentacion,
             'cantidad_unidad_presentacion': insumo.cantidad_unidad_presentacion,
             'codigo_presentacion': insumo.codigo_presentacion,
             'cantidad': insumo_solicitud.cantidad,
+            'renglon': insumo_solicitud.renglon,
+
         }
 
         return JsonResponse({'success': True, 'insumo': insumo_data, 'detalle_id': detalle_id})
@@ -494,6 +497,7 @@ def agregar_insumo_solicitud(request):
         return JsonResponse({'success': False, 'error': 'Solicitud no encontrada.'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
 
 
 def detalle_solicitud(request, solicitud_id):

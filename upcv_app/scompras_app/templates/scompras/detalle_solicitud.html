@@ -153,9 +153,11 @@
               <thead>
                 <tr style="background: #0068ab; color: white;">
                   <th style="padding: 18px 15px; text-align: left;">Cantidad Solicitada</th>
+                  <th style="padding: 18px 15px; text-align: left;">Renglón</th>
                   <th style="padding: 18px 15px; text-align: left;">Código Insumo</th>
                   <th style="padding: 18px 15px; text-align: left;">Nombre</th>
                   <th style="padding: 18px 15px; text-align: left;">Características</th>
+                  <th style="padding: 18px 15px; text-align: left;">Característica Especial</th>
                   <th style="padding: 18px 15px; text-align: left;">Presentación</th>
                   <th style="padding: 18px 15px; text-align: left;">Cantidad Unidad Presentación</th>
                   <th style="padding: 18px 15px; text-align: left;">Código Presentación</th>
@@ -167,9 +169,11 @@
                   {% for detalle in detalles %}
                     <tr data-id="{{ detalle.id }}">
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.cantidad }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;"> {{ detalle.insumo.renglon}}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_insumo }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.nombre }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.caracteristicas|default:"-" }}</td>
+                      <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.caracteristica_especial|default:"-" }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.nombre_presentacion }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
                       <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">{{ detalle.insumo.codigo_presentacion }}</td>
@@ -335,17 +339,28 @@
         <!-- Formulario -->
         <form id="formCantidad">
           <div class="row justify-content-center">
-            <div class="col-md-8 mb-3">
-              <label for="inputCantidad" class="form-label fw-semibold">Cantidad solicitada:</label>
-              <input type="number" 
-                     id="inputCantidad" 
-                     name="cantidad" 
-                     class="form-control text-center fs-5" 
-                     min="1" 
-                     placeholder="Ingrese una cantidad" 
-                     required>
-            </div>
-          </div>
+  <div class="col-md-8 mb-3">
+    <label for="inputCantidad" class="form-label fw-semibold">Cantidad solicitada:</label>
+    <input type="number" 
+           id="inputCantidad" 
+           name="cantidad" 
+           class="form-control text-center fs-5" 
+           min="1" 
+           placeholder="Ingrese una cantidad" 
+           required>
+  </div>
+
+  <!-- Nuevo campo -->
+  <div class="col-md-8 mb-3">
+    <label for="inputCaracteristica" class="form-label fw-semibold">Característica especial:</label>
+    <textarea id="inputCaracteristica"
+              name="caracteristica"
+              class="form-control fs-5"
+              rows="2"
+              placeholder="Ejemplo: color específico, pureza, tipo de envase, etc."></textarea>
+  </div>
+</div>
+
 
           <input type="hidden" id="codigo-presentacion-modal">
 
@@ -640,9 +655,11 @@ function showModalAlert(mensaje, subtitulo = "Notificación del sistema") {
         const newRow = `
             <tr data-id="${detalleId}">
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.renglon}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_insumo}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristicas}</td>
+                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristica_especial || '-'}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre_presentacion}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
                 <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
@@ -727,18 +744,52 @@ $('#basic-1 tbody').on('click', '.btn-agregar-insumo', function () {
     $('#inputCantidad').val(1);
     $('#modalCantidad').modal('show');
 });
-
 // Cuando el usuario confirma la cantidad en el modal
 $('#btnGuardarCantidad').on('click', function () {
     const cantidad = parseInt($('#inputCantidad').val());
+    const caracteristica = $('#inputCaracteristica').val(); // ✅ nuevo campo
+
     if (!cantidad || cantidad <= 0) {
         showModalAlert('Por favor ingrese una cantidad válida.', 'Validación de cantidad');
         return;
     }
 
-    const btn = botonAgregarActual;
+    const btn = botonAgregarActual; // botón "Agregar" original que abría el modal
     const codigoPresentacion = codigoPresentacionSeleccionado;
     const solicitudId = $('#solicitud-id').val();
+
+    // --- OBTENER renglon de forma segura ---
+    let renglon = '';
+
+    try {
+        // 1) Intentar buscar en la fila del botón (selector genérico)
+        const $fila = btn.closest('tr');
+        renglon = $fila.find('td').eq(0).text().trim(); // si renglón es la primera columna
+
+        // 2) Si quedó vacío, intentar obtenerlo vía DataTable (más fiable si DataTables reordena filas)
+        if (!renglon && typeof tablaInsumos !== 'undefined') {
+            const filaData = tablaInsumos.row($fila).data();
+            if (filaData) {
+                // filaData puede ser array o objeto según tu servidor; intentamos varias opciones
+                renglon = filaData[0] || filaData.renglon || '';
+                if (typeof renglon === 'object') renglon = String(renglon);
+                renglon = (renglon || '').toString().trim();
+            }
+        }
+    } catch (err) {
+        console.warn('No se pudo obtener renglon automáticamente:', err);
+        renglon = '';
+    }
+
+    // --- DEBUG: ver qué vamos a enviar ---
+    console.log('Enviando datos a agregar_insumo_solicitud:', {
+        solicitudId,
+        codigoPresentacion,
+        cantidad,
+        caracteristica,
+        renglon,
+        csrftoken
+    });
 
     btn.prop('disabled', true).text('Agregando...');
     $('#modalCantidad').modal('hide');
@@ -750,8 +801,11 @@ $('#btnGuardarCantidad').on('click', function () {
             'solicitud_id': solicitudId,
             'codigo_presentacion': codigoPresentacion,
             'cantidad': cantidad,
+            'caracteristica': caracteristica,
+            'renglon': renglon,  // ✅ ahora seguro (aunque vacío si no existe)
             'csrfmiddlewaretoken': csrftoken 
         },
+
         success: function (response) {
             if (response.success) {
                 appendInsumoToAgregados(response.insumo, response.detalle_id);
@@ -763,11 +817,13 @@ $('#btnGuardarCantidad').on('click', function () {
             }
         },
         error: function (xhr) {
+            console.error('AJAX error:', xhr);
             showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
             btn.prop('disabled', false).text('Agregar');
         }
     });
 });
+
 
 
 // --- 2. Lógica para ELIMINAR Insumo (AJAX) ---

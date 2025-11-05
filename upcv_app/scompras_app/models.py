@@ -154,6 +154,8 @@ class InsumoSolicitud(models.Model):
     solicitud = models.ForeignKey(SolicitudCompra, on_delete=models.CASCADE, related_name='insumos_solicitud')
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField(default=1)  # o la cantidad que necesites
+    caracteristica_especial = models.TextField(blank=True, null=True)
+    renglon = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         unique_together = ('solicitud', 'insumo')  # para evitar duplicados
