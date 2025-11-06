@@ -849,15 +849,30 @@ def insumos_disponibles_json(request):
 
     return JsonResponse({'data': data})
 
-@csrf_exempt  # Si estás teniendo problemas con CSRF en peticiones Ajax, puedes usar esto temporalmente
+
+@csrf_exempt
 def insumos_json(request):
     draw = int(request.GET.get('draw', 1))
     start = int(request.GET.get('start', 0))
     length = int(request.GET.get('length', 10))
     search_value = request.GET.get('search[value]', '').strip()
 
+    # 🔍 Filtros personalizados que vienen del frontend
+    renglon = request.GET.get('renglon', '').strip()
+    codigo_insumo = request.GET.get('codigo_insumo', '').strip()
+    codigo_presentacion = request.GET.get('codigo_presentacion', '').strip()
+
     queryset = Insumo.objects.all()
 
+    # 🔹 Filtros personalizados individuales
+    if renglon:
+        queryset = queryset.filter(renglon__icontains=renglon)
+    if codigo_insumo:
+        queryset = queryset.filter(codigo_insumo__icontains=codigo_insumo)
+    if codigo_presentacion:
+        queryset = queryset.filter(codigo_presentacion__icontains=codigo_presentacion)
+
+    # 🔹 Búsqueda global de DataTables
     if search_value:
         queryset = queryset.filter(
             Q(renglon__icontains=search_value) |
@@ -871,12 +886,10 @@ def insumos_json(request):
 
     total_count = Insumo.objects.count()
     filtered_count = queryset.count()
-
     queryset = queryset[start:start + length]
 
-    data = []
-    for insumo in queryset:
-        data.append([
+    data = [
+        [
             insumo.renglon,
             insumo.codigo_insumo,
             insumo.nombre,
@@ -884,7 +897,9 @@ def insumos_json(request):
             insumo.nombre_presentacion,
             insumo.cantidad_unidad_presentacion,
             insumo.codigo_presentacion
-        ])
+        ]
+        for insumo in queryset
+    ]
 
     return JsonResponse({
         'draw': draw,

@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -19,7 +18,7 @@
 <!-- Encabezado con imagen SVG -->
 <div class="header-image">
     <img src="{% static 'assets/images/insumos.svg' %}" alt="Encabezado" class="img-fluid w-100" style="max-height: 480px; object-fit: cover;">
-  </div>
+</div>
 
 <div class="container-fluid mt-3">
   <div class="card">
@@ -64,27 +63,44 @@
         {% endif %}
           </h6>
 
-            
-          
-             <a href="{% url 'scompras:descargar_insumos' %}" class="btn btn-primary">Descargar Excel</a>
+          <a href="{% url 'scompras:descargar_insumos' %}" class="btn btn-primary">Descargar Excel</a>
         </div>
       
     </div>
       
     <div class="card-body">
+  <button id="btnLimpiarFiltros" class="btn btn-primary btn-sm">
+    🧹 Limpiar filtros
+  </button><br>
+
       <div class="table-responsive">
         <table class="display table" id="basic-1" style="width:100%">
-          <thead>
-            <tr>
-              <th>Renglón</th>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Características</th>
-              <th>Presentación</th>
-              <th>Cantidad y Unidad</th>
-              <th>Código Presentación</th>
-            </tr>
-          </thead>
+<thead>
+  <tr>
+    <th>Renglón<br>
+      <input type="text" id="searchRenglon" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+    <th>Código<br>
+      <input type="text" id="searchCodigoInsumo" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+    <th>Nombre<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Características<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Presentación<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Cantidad y Unidad<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Código Presentación<br>
+      <input type="text" id="searchCodigoPresentacion" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+  </tr>
+</thead>
+
           <tbody>
             <!-- DataTables llenará esta parte automáticamente -->
           </tbody>
@@ -92,9 +108,10 @@
       </div>
     </div>
   </div>
+
   <div class="col-12">
     <div class="card note p-20">
-              <p class="mb-0 text-center">Copyright <span id="currentYear"></span> © Informatica UPCV</p>
+      <p class="mb-0 text-center">Copyright <span id="currentYear"></span> © Informatica UPCV</p>
     </div>
   </div>
 </div>
@@ -104,36 +121,49 @@
 <script src="{% static 'assets/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
 
-<!-- DataTables con Server-side -->
 <script>
   $(document).ready(function () {
-    $('#basic-1').DataTable({
-  processing: true,
-  serverSide: true,
-  ajax: '{% url "scompras:insumos_json" %}',
-  columns: [
-    { data: 0 },
-    { data: 1 },
-    { data: 2 },
-    { data: 3 },
-    { data: 4 },
-    { data: 5 },
-    { data: 6 }
-  ],
-  language: {
-    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
-  }
-});
+    const tablaInsumos = $('#basic-1').DataTable({
+      processing: true,
+      serverSide: true,
+      ajax: {
+        url: '{% url "scompras:insumos_json" %}',
+        data: function (d) {
+          d.renglon = $('#searchRenglon').val();
+          d.codigo_insumo = $('#searchCodigoInsumo').val();
+          d.codigo_presentacion = $('#searchCodigoPresentacion').val();
+        }
+      },
+      columns: [
+        { data: 0 },
+        { data: 1 },
+        { data: 2 },
+        { data: 3 },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 }
+      ],
+      language: {
+        url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+      }
+    });
 
+    // Filtros personalizados
+    $('#searchRenglon, #searchCodigoInsumo, #searchCodigoPresentacion').on('keyup', function () {
+      tablaInsumos.ajax.reload();
+    });
+
+    // Botón limpiar filtros
+    $('#btnLimpiarFiltros').on('click', function () {
+      $('#searchRenglon, #searchCodigoInsumo, #searchCodigoPresentacion').val('');
+      tablaInsumos.ajax.reload();
+    });
   });
 </script>
 
+<script>
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
 
 </body>
 </html>
-
-  
-  <script>
-    document.getElementById('currentYear').textContent = new Date().getFullYear();
-  </script>
-

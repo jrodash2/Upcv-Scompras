@@ -203,21 +203,44 @@
   </div>
 
 {% if solicitud.estado != 'Finalizada' and solicitud.estado != 'Rechazada' %}
+
+
 <div class="card-body">
       <div class="table-responsive">
+   <button id="btnLimpiarFiltros" class="btn btn-primary btn-sm">
+    🧹 Limpiar filtros
+  </button><br>
         <table class="display table" id="basic-1" style="width:100%">
-          <thead>
-            <tr>
-              <th>Renglón</th>
-              <th>Código</th>
-              <th>Nombre</th>
-              <th>Características</th>
-              <th>Presentación</th>
-              <th>Cantidad y Unidad</th>
-              <th>Código Presentación</th>
-                            <th>Acción</th>
-            </tr>
-          </thead>
+<thead>
+  <tr>
+    <th>Renglón<br>
+      <input type="text" id="searchRenglon" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+    <th>Código<br>
+      <input type="text" id="searchCodigoInsumo" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+    <th>Nombre<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Características<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Presentación<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Cantidad y Unidad<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+    <th>Código Presentación<br>
+      <input type="text" id="searchCodigoPresentacion" class="form-control form-control-sm" placeholder="Buscar...">
+    </th>
+    <th>Acción<br>
+      <input type="text" class="form-control form-control-sm invisible" disabled>
+    </th>
+  </tr>
+</thead>
+
+
           <tbody>
                       </tbody>
         </table>
@@ -419,227 +442,20 @@
   </div>
 </div>
 
-
 <script src="{% static 'assets/js/jquery.min.js' %}"></script>
 <script src="{% static 'assets/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'assets/js/datatable/datatables/jquery.dataTables.min.js' %}"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const btnImprimir = document.getElementById("btnImprimir");
-
-  // Al hacer clic en el botón de imprimir
-  btnImprimir.addEventListener("click", function() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Capturamos la parte de la página que deseas imprimir, excepto la tabla de abajo
-    const content = document.querySelector(".page-body").cloneNode(true);
-    const tableToRemove = content.querySelector("#basic-1");
-    if (tableToRemove) {
-      tableToRemove.remove(); // Eliminamos la tabla que no quieres incluir
-    }
-
-    // Convertir el contenido en PDF
-    doc.html(content, {
-      callback: function (doc) {
-        doc.save("solicitud_compra.pdf"); // Guardar el archivo
-      },
-      margin: [10, 10, 10, 10],
-      x: 10,
-      y: 10
-    });
-  });
-});
-
-
-
-
-
-
-  $('#btnRechazar').on('click', function() {
-    const solicitudId = $('#solicitud-id').val();
-
-    $.ajax({
-        url: '{% url "scompras:rechazar_solicitud" %}',
-        type: 'POST',
-        data: JSON.stringify({ solicitud_id: solicitudId }),
-        contentType: 'application/json',
-        headers: {'X-CSRFToken': csrftoken},
-        success: function(response) {
-            if (response.success) {
-                showModalAlert('La solicitud fue anulada correctamente.', 'Acción realizada');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showModalAlert('Error: ' + response.error, 'No se pudo actualizar');
-            }
-        },
-        error: function(xhr) {
-            showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
-        }
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function() {
-    const btnFinalizar = document.getElementById("btnFinalizarSolicitud");
-
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener("click", function() {
-            finalizarSolicitud();
-        });
-    }
-});
-
-function finalizarSolicitud() {
-    const solicitudId = document.getElementById("solicitud-id").value;
-
-    
-
-    fetch("{% url 'scompras:finalizar_solicitud' %}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCookie('csrftoken'),
-        },
-        body: JSON.stringify({ solicitud_id: solicitudId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showModalAlert("La solicitud fue finalizada correctamente.", "Estado actualizado");
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showModalAlert("No se pudo finalizar: " + data.error, "Error");
-        }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        showModalAlert("Error en la conexión con el servidor.", "Error");
-    });
-}
-</script>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const btnGuardar = document.getElementById("btnGuardarEdicion");
-
-    btnGuardar.addEventListener("click", function() {
-        guardarCambiosSolicitud();
-    });
-});
-
-function guardarCambiosSolicitud() {
-    const form = document.getElementById("formEditarSolicitud");
-    const formData = new FormData(form);
-
-    fetch("{% url 'scompras:editar_solicitud' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Mensaje bonito con SweetAlert o alert normal
-            {% comment %} alert("✅ Solicitud actualizada correctamente."); {% endcomment %}
-
-            // Cierra el modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarSolicitud'));
-            modal.hide();
-
-            // Opcional: recargar tabla o página
-            setTimeout(() => location.reload(), 500);
-        } else {
-            if (data.errors) {
-                mostrarErrores(data.errors);
-            } else {
-                alert("❌ Error: " + data.error);
-            }
-        }
-    })
-    .catch(error => console.error("Error en la solicitud:", error));
-}
-
-function mostrarErrores(errors) {
-    // Muestra los errores del formulario en consola o alerta
-    let mensaje = "Errores encontrados:\n";
-    for (let campo in errors) {
-        mensaje += `- ${campo}: ${errors[campo].join(", ")}\n`;
-    }
-    alert(mensaje);
-}
-</script>
-
-
-<script>
-// --- Cargar subproductos al cambiar de producto ---
-$('#id_producto').on('change', function () {
-    const productoId = $(this).val();
-    const $subproductoSelect = $('#id_subproducto');
-    $subproductoSelect.empty().append('<option value="">Cargando...</option>');
-
-    if (productoId) {
-        $.ajax({
-            url: `/scompras/subproductos/${productoId}/`,
-            type: 'GET',
-            success: function (response) {
-                $subproductoSelect.empty().append('<option value="">Seleccione un subproducto</option>');
-                response.subproductos.forEach(sub => {
-                    $subproductoSelect.append(`<option value="${sub.id}">${sub.nombre}</option>`);
-                });
-            },
-            error: function () {
-                $subproductoSelect.empty().append('<option value="">Error al cargar</option>');
-            }
-        });
-    } else {
-        $subproductoSelect.empty().append('<option value="">Seleccione un producto primero</option>');
-    }
-});
-
-
-  // === Guardar edición de solicitud ===
-$('#btnGuardarEdicion').on('click', function () {
-    const formData = $('#formEditarSolicitud').serialize();
-
-    $.ajax({
-        url: '{% url "scompras:editar_solicitud" %}', // Debes crear esta vista en Django
-        type: 'POST',
-        data: formData,
-        success: function (response) {
-            if (response.success) {
-                $('#modalEditarSolicitud').modal('hide');
-                showModalAlert('La solicitud se actualizó correctamente.', 'Edición exitosa');
-                setTimeout(() => location.reload(), 1000); // Recargar para ver los cambios
-            } else {
-                showModalAlert('Error: ' + response.error, 'No se pudo actualizar');
-            }
-        },
-        error: function (xhr) {
-            showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
-        }
-    });
-});
-
-  // === Función para mostrar alertas en modal ===
-function showModalAlert(mensaje, subtitulo = "Notificación del sistema") {
-    $('#alerta-mensaje').text(mensaje);
-    $('#alerta-subtitulo').text(subtitulo);
-    const modal = new bootstrap.Modal(document.getElementById('modalAlerta'));
-    modal.show();
-}
-
-    // Función para obtener el CSRF token de las cookies (necesario para AJAX POST en Django)
+$(document).ready(function () {
+    /* === FUNCIONES GENERALES === */
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
             const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                let cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
                     cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                     break;
                 }
@@ -649,228 +465,282 @@ function showModalAlert(mensaje, subtitulo = "Notificación del sistema") {
     }
     const csrftoken = getCookie('csrftoken');
 
-
-    // 3. Funci\u00f3n para agregar el insumo a la tabla superior con el ID correcto
-    function appendInsumoToAgregados(insumo, detalleId) {
-        const newRow = `
-            <tr data-id="${detalleId}">
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.renglon}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_insumo}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristicas}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.caracteristica_especial || '-'}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.nombre_presentacion}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.cantidad_unidad_presentacion}</td>
-                <td style="padding: 18px 15px; border-bottom: 1px solid #ccc;">${insumo.codigo_presentacion}</td>
-                <td style="padding: 18px 15px; text-align: center; border-bottom: 1px solid #ccc;">
-                
-                    <button type="button" class="btn-eliminar" data-id="${detalleId}"
-                      style="background: #0068ab; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
-                      Eliminar
-                    </button>
-                </td>
-            </tr>
-        `;
-        
-        // Remover la fila de "No hay insumos agregados" si existe
-        $('#tabla-insumos-agregados tbody tr').each(function() {
-            if ($(this).find('td').text().includes('No hay insumos agregados aún.')) {
-                $(this).remove();
-                return false;
-            }
-        });
-
-        // Agregar la nueva fila
-        $('#tabla-insumos-agregados tbody').append(newRow);
+    function showModalAlert(mensaje, subtitulo = "Notificación del sistema") {
+        $('#alerta-mensaje').text(mensaje);
+        $('#alerta-subtitulo').text(subtitulo);
+        const modal = new bootstrap.Modal(document.getElementById('modalAlerta'));
+        modal.show();
     }
 
-    // Funci\u00f3n para verificar si la tabla de agregados queda vac\u00eda
-    function checkEmptyTable() {
-        if ($('#tabla-insumos-agregados tbody tr').length === 0) {
-            const emptyMessage = `
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 18px 15px; color: #666;">
-                        No hay insumos agregados a\u00fan.
-                    </td>
-                </tr>
-            `;
-            $('#tabla-insumos-agregados tbody').append(emptyMessage);
-        }
-    }
+    /* === IMPRIMIR PDF === */
+    const btnImprimir = document.getElementById("btnImprimir");
+    if (btnImprimir) {
+        btnImprimir.addEventListener("click", function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const content = document.querySelector(".page-body").cloneNode(true);
+            const tableToRemove = content.querySelector("#basic-1");
+            if (tableToRemove) tableToRemove.remove();
 
-
-    $(document).ready(function () {
-        const solicitudId = $('#solicitud-id').val();
-        
-        // Inicializar DataTables
-        const tablaInsumos = $('#basic-1').DataTable({
-            processing: true,
-            serverSide: true,
-            ajax: '{% url "scompras:insumos_json" %}',
-            columns: [
-                { data: 0 }, { data: 1 }, { data: 2 }, { data: 3 }, 
-                { data: 4 }, { data: 5 }, { data: 6 }, 
-                { data: null } // Columna de Acci\u00f3n
-            ],
-            columnDefs: [
-                {
-                    targets: 7,
-                    orderable: false,
-                    render: function (data, type, row) {
-                        const codigoPresentacion = row[6]; 
-                        return `
-                            <button type="button" class="btn btn-primary btn-agregar-insumo" 
-                                data-codigo-presentacion="${codigoPresentacion}"
-                                style="background: #28a745; color: white; border:none; border-radius:5px; padding: 5px 10px; cursor:pointer;">
-                                Agregar
-                            </button>
-                        `;
-                    }
-                }
-            ],
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
-            }
-        });
-        
-        let codigoPresentacionSeleccionado = null;
-let botonAgregarActual = null;
-
-// Cuando el usuario hace clic en "Agregar", abrimos el modal
-$('#basic-1 tbody').on('click', '.btn-agregar-insumo', function () {
-    codigoPresentacionSeleccionado = $(this).data('codigo-presentacion');
-    botonAgregarActual = $(this);
-    $('#inputCantidad').val(1);
-    $('#modalCantidad').modal('show');
-});
-// Cuando el usuario confirma la cantidad en el modal
-$('#btnGuardarCantidad').on('click', function () {
-    const cantidad = parseInt($('#inputCantidad').val());
-    const caracteristica = $('#inputCaracteristica').val(); // ✅ nuevo campo
-
-    if (!cantidad || cantidad <= 0) {
-        showModalAlert('Por favor ingrese una cantidad válida.', 'Validación de cantidad');
-        return;
-    }
-
-    const btn = botonAgregarActual; // botón "Agregar" original que abría el modal
-    const codigoPresentacion = codigoPresentacionSeleccionado;
-    const solicitudId = $('#solicitud-id').val();
-
-    // --- OBTENER renglon de forma segura ---
-    let renglon = '';
-
-    try {
-        // 1) Intentar buscar en la fila del botón (selector genérico)
-        const $fila = btn.closest('tr');
-        renglon = $fila.find('td').eq(0).text().trim(); // si renglón es la primera columna
-
-        // 2) Si quedó vacío, intentar obtenerlo vía DataTable (más fiable si DataTables reordena filas)
-        if (!renglon && typeof tablaInsumos !== 'undefined') {
-            const filaData = tablaInsumos.row($fila).data();
-            if (filaData) {
-                // filaData puede ser array o objeto según tu servidor; intentamos varias opciones
-                renglon = filaData[0] || filaData.renglon || '';
-                if (typeof renglon === 'object') renglon = String(renglon);
-                renglon = (renglon || '').toString().trim();
-            }
-        }
-    } catch (err) {
-        console.warn('No se pudo obtener renglon automáticamente:', err);
-        renglon = '';
-    }
-
-    // --- DEBUG: ver qué vamos a enviar ---
-    console.log('Enviando datos a agregar_insumo_solicitud:', {
-        solicitudId,
-        codigoPresentacion,
-        cantidad,
-        caracteristica,
-        renglon,
-        csrftoken
-    });
-
-    btn.prop('disabled', true).text('Agregando...');
-    $('#modalCantidad').modal('hide');
-
-    $.ajax({
-        url: '{% url "scompras:agregar_insumo_solicitud" %}',
-        type: 'POST',
-        data: {
-            'solicitud_id': solicitudId,
-            'codigo_presentacion': codigoPresentacion,
-            'cantidad': cantidad,
-            'caracteristica': caracteristica,
-            'renglon': renglon,  // ✅ ahora seguro (aunque vacío si no existe)
-            'csrfmiddlewaretoken': csrftoken 
-        },
-
-        success: function (response) {
-            if (response.success) {
-                appendInsumoToAgregados(response.insumo, response.detalle_id);
-                tablaInsumos.ajax.reload(null, false);
-                btn.prop('disabled', true).text('Agregado').css('background', '#6c757d');
-            } else {
-                showModalAlert('Error: ' + response.error, 'Error al agregar insumo');
-                btn.prop('disabled', false).text('Agregar');
-            }
-        },
-        error: function (xhr) {
-            console.error('AJAX error:', xhr);
-            showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
-            btn.prop('disabled', false).text('Agregar');
-        }
-    });
-});
-
-
-
-// --- 2. Lógica para ELIMINAR Insumo (AJAX) ---
-        // Usamos delegación para manejar los clics en botones creados dinámicamente
-        $('#tabla-insumos-agregados').on('click', '.btn-eliminar', function () {
-            const btn = $(this);
-            const detalleId = btn.data('id');
-            const row = btn.closest('tr'); // Obtiene la fila completa
-
-
-            btn.prop('disabled', true).text('Eliminando...');
-
-            $.ajax({
-                url: '{% url "scompras:eliminar_detalle_solicitud" detalle_id=0 %}'.replace('0', detalleId), // Usa la URL de eliminación
-                type: 'POST',
-                data: {
-                    'csrfmiddlewaretoken': csrftoken 
-                },
-                success: function (response) {
-                    if (response.success) {
-                       
-                        // Eliminar la fila de la tabla
-                        row.remove();
-                        // Verificar si la tabla queda vacía
-                        checkEmptyTable();
-
-                        // Opcional: Recargar la tabla inferior (catálogo) para que el insumo aparezca de nuevo
-                        if (typeof tablaInsumos !== 'undefined') {
-                            tablaInsumos.ajax.reload(null, false);
-                        }
-                    } else {
-                        alert('Error al eliminar insumo: ' + response.error);
-                        btn.prop('disabled', false).text('Eliminar');
-                    }
-                },
-// ... dentro de $.ajax({ ...
-                error: function (xhr, status, error) {
-                    // Muestra el código de estado (404, 500, 403, etc.)
-                    alert('Ocurrió un error en la comunicación con el servidor. Código: ' + xhr.status);
-                    btn.prop('disabled', false).text('Eliminar');
-                }
-// ...
+            doc.html(content, {
+                callback: function (doc) { doc.save("solicitud_compra.pdf"); },
+                margin: [10, 10, 10, 10]
             });
         });
+    }
 
-
+    /* === RECHAZAR SOLICITUD === */
+    $('#btnRechazar').on('click', function() {
+        const solicitudId = $('#solicitud-id').val();
+        $.ajax({
+            url: '{% url "scompras:rechazar_solicitud" %}',
+            type: 'POST',
+            data: JSON.stringify({ solicitud_id: solicitudId }),
+            contentType: 'application/json',
+            headers: {'X-CSRFToken': csrftoken},
+            success: function(response) {
+                if (response.success) {
+                    showModalAlert('La solicitud fue anulada correctamente.', 'Acción realizada');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showModalAlert('Error: ' + response.error, 'No se pudo actualizar');
+                }
+            },
+            error: function(xhr) {
+                showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
+            }
+        });
     });
+
+    /* === FINALIZAR SOLICITUD === */
+    $('#btnFinalizarSolicitud').on('click', function() {
+        const solicitudId = $('#solicitud-id').val();
+        $.ajax({
+            url: '{% url "scompras:finalizar_solicitud" %}',
+            type: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            data: JSON.stringify({ solicitud_id: solicitudId }),
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.success) {
+                    showModalAlert('La solicitud fue finalizada correctamente.', 'Estado actualizado');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showModalAlert('No se pudo finalizar: ' + response.error, 'Error');
+                }
+            },
+            error: function() {
+                showModalAlert('Error en la conexión con el servidor.', 'Error');
+            }
+        });
+    });
+
+    /* === GUARDAR EDICIÓN === */
+    $('#btnGuardarEdicion').on('click', function() {
+        const formData = $('#formEditarSolicitud').serialize();
+        $.ajax({
+            url: '{% url "scompras:editar_solicitud" %}',
+            type: 'POST',
+            headers: { 'X-CSRFToken': csrftoken },
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    $('#modalEditarSolicitud').modal('hide');
+                    showModalAlert('La solicitud se actualizó correctamente.', 'Edición exitosa');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showModalAlert('Error: ' + response.error, 'No se pudo actualizar');
+                }
+            },
+            error: function(xhr) {
+                showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
+            }
+        });
+    });
+
+    /* === CARGAR SUBPRODUCTOS === */
+    $('#id_producto').on('change', function () {
+        const productoId = $(this).val();
+        const $subproductoSelect = $('#id_subproducto');
+        $subproductoSelect.empty().append('<option value="">Cargando...</option>');
+
+        if (productoId) {
+            $.ajax({
+                url: `/scompras/subproductos/${productoId}/`,
+                type: 'GET',
+                success: function (response) {
+                    $subproductoSelect.empty().append('<option value="">Seleccione un subproducto</option>');
+                    response.subproductos.forEach(sub => {
+                        $subproductoSelect.append(`<option value="${sub.id}">${sub.nombre}</option>`);
+                    });
+                },
+                error: function () {
+                    $subproductoSelect.empty().append('<option value="">Error al cargar</option>');
+                }
+            });
+        } else {
+            $subproductoSelect.empty().append('<option value="">Seleccione un producto primero</option>');
+        }
+    });
+
+    /* === DATATABLE === */
+const tablaInsumos = $('#basic-1').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: {
+        url: '{% url "scompras:insumos_json" %}',
+        data: function (d) {
+            d.renglon = $('#searchRenglon').val();
+            d.codigo_insumo = $('#searchCodigoInsumo').val();
+            d.codigo_presentacion = $('#searchCodigoPresentacion').val();
+        }
+    },
+    columns: [
+        { data: 0 }, { data: 1 }, { data: 2 }, { data: 3 },
+        { data: 4 }, { data: 5 }, { data: 6 }, { data: null }
+    ],
+    columnDefs: [{
+        targets: 7,
+        orderable: false,
+        render: function (data, type, row) {
+            return `<button type="button" class="btn btn-primary btn-agregar-insumo"
+                        data-codigo-presentacion="${row[6]}">Agregar</button>`;
+        }
+    }],
+    language: { url: "{% static 'assets/js/datatable/spanish.json' %}" }
+});
+
+// Detectar cambios y refrescar tabla
+$('#searchRenglon, #searchCodigoInsumo, #searchCodigoPresentacion').on('keyup', function () {
+    tablaInsumos.ajax.reload();
+});
+// === LIMPIAR FILTROS ===
+$('#btnLimpiarFiltros').on('click', function () {
+    $('#searchRenglon').val('');
+    $('#searchCodigoInsumo').val('');
+    $('#searchCodigoPresentacion').val('');
+    tablaInsumos.search('').columns().search('').draw();
+    tablaInsumos.ajax.reload();
+});
+
+
+    // Filtros personalizados
+    $('#searchCodigoInsumo').on('keyup', function () {
+        tablaInsumos.column(1).search(this.value).draw();
+    });
+    $('#searchCodigoPresentacion').on('keyup', function () {
+        tablaInsumos.column(6).search(this.value).draw();
+    });
+
+    
+    /* === AGREGAR INSUMO === */
+    let codigoPresentacionSeleccionado = null;
+    let botonAgregarActual = null;
+
+    $('#basic-1 tbody').on('click', '.btn-agregar-insumo', function () {
+        codigoPresentacionSeleccionado = $(this).data('codigo-presentacion');
+        botonAgregarActual = $(this);
+        $('#inputCantidad').val(1);
+        $('#modalCantidad').modal('show');
+    });
+
+    $('#btnGuardarCantidad').on('click', function () {
+        const cantidad = parseInt($('#inputCantidad').val());
+        const caracteristica = $('#inputCaracteristica').val();
+        const solicitudId = $('#solicitud-id').val();
+
+        if (!cantidad || cantidad <= 0) {
+            showModalAlert('Ingrese una cantidad válida.', 'Validación');
+            return;
+        }
+
+        const btn = botonAgregarActual;
+        btn.prop('disabled', true).text('Agregando...');
+
+        $.ajax({
+            url: '{% url "scompras:agregar_insumo_solicitud" %}',
+            type: 'POST',
+            data: {
+                solicitud_id: solicitudId,
+                codigo_presentacion: codigoPresentacionSeleccionado,
+                cantidad,
+                caracteristica,
+                csrfmiddlewaretoken: csrftoken
+            },
+            success: function (response) {
+                if (response.success) {
+                    appendInsumoToAgregados(response.insumo, response.detalle_id);
+                    tablaInsumos.ajax.reload(null, false);
+                    btn.text('Agregado').css('background', '#6c757d');
+                } else {
+                    showModalAlert('Error: ' + response.error, 'No se pudo agregar');
+                    btn.prop('disabled', false).text('Agregar');
+                }
+            },
+            error: function (xhr) {
+                showModalAlert('Error en el servidor. Código: ' + xhr.status, 'Error de conexión');
+                btn.prop('disabled', false).text('Agregar');
+            }
+        });
+        $('#modalCantidad').modal('hide');
+    });
+
+    /* === ELIMINAR INSUMO === */
+    $('#tabla-insumos-agregados').on('click', '.btn-eliminar', function () {
+        const btn = $(this);
+        const detalleId = btn.data('id');
+        const row = btn.closest('tr');
+
+        btn.prop('disabled', true).text('Eliminando...');
+
+        $.ajax({
+            url: '{% url "scompras:eliminar_detalle_solicitud" detalle_id=0 %}'.replace('0', detalleId),
+            type: 'POST',
+            data: { csrfmiddlewaretoken: csrftoken },
+            success: function (response) {
+                if (response.success) {
+                    row.remove();
+                    checkEmptyTable();
+                    tablaInsumos.ajax.reload(null, false);
+                } else {
+                    showModalAlert('Error al eliminar: ' + response.error, 'Error');
+                    btn.prop('disabled', false).text('Eliminar');
+                }
+            },
+            error: function (xhr) {
+                showModalAlert('Error al eliminar. Código: ' + xhr.status, 'Error de conexión');
+                btn.prop('disabled', false).text('Eliminar');
+            }
+        });
+    });
+
+    /* === FUNCIONES AUXILIARES === */
+    function appendInsumoToAgregados(insumo, detalleId) {
+        const row = `
+            <tr data-id="${detalleId}">
+                <td>${insumo.cantidad}</td>
+                <td>${insumo.renglon}</td>
+                <td>${insumo.codigo_insumo}</td>
+                <td>${insumo.nombre}</td>
+                <td>${insumo.caracteristicas}</td>
+                <td>${insumo.caracteristica_especial || '-'}</td>
+                <td>${insumo.nombre_presentacion}</td>
+                <td>${insumo.cantidad_unidad_presentacion}</td>
+                <td>${insumo.codigo_presentacion}</td>
+                <td><button class="btn btn-primary btn-eliminar" data-id="${detalleId}">Eliminar</button></td>
+            </tr>`;
+        $('#tabla-insumos-agregados tbody').append(row);
+    }
+
+    function checkEmptyTable() {
+        if ($('#tabla-insumos-agregados tbody tr').length === 0) {
+            $('#tabla-insumos-agregados tbody').append(`
+                <tr><td colspan="10" class="text-center text-muted">No hay insumos agregados aún.</td></tr>
+            `);
+        }
+    }
+});
 </script>
+
 
 {% endblock %}
