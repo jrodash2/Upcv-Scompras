@@ -15,7 +15,7 @@ import openpyxl
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .form import ExcelUploadForm, SeccionForm, FechaInsumoForm, PerfilForm, SolicitudCompraForm, SolicitudCompraFormcrear, UserCreateForm, UserEditForm, UserCreateForm, DepartamentoForm, UsuarioDepartamentoForm, InstitucionForm
-from .models import  FechaInsumo, Producto, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion
+from .models import  FechaInsumo, Producto, Insumo, InsumoSolicitud, Perfil, Departamento, Seccion, SolicitudCompra, Subproducto, UsuarioDepartamento, Institucion, Servicio, ServicioSolicitud
 from django.views.generic import CreateView
 from django.views.generic import ListView
 from django.urls import reverse_lazy
@@ -370,6 +370,7 @@ class SolicitudCompraDetailView(DetailView):
 
         context['insumos'] = Insumo.objects.all()
         context['detalles'] = InsumoSolicitud.objects.filter(solicitud=solicitud)
+        context['servicios'] = ServicioSolicitud.objects.filter(solicitud=solicitud)
         context['ultima_fecha_insumo'] = FechaInsumo.objects.last()
         context['productos'] = Producto.objects.filter(activo=True)
         context['subproductos'] = Subproducto.objects.filter(activo=True)
@@ -439,6 +440,20 @@ def eliminar_detalle_solicitud(request, detalle_id):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+
+@csrf_exempt
+def eliminar_servicio_solicitud(request, servicio_id):
+    if request.method == "POST":
+        try:
+            servicio = ServicioSolicitud.objects.get(id=servicio_id)
+            servicio.delete()
+            return JsonResponse({"success": True})
+        except ServicioSolicitud.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Servicio no encontrado"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
 from django.forms.models import model_to_dict
 
 @require_POST
@@ -503,6 +518,7 @@ def agregar_insumo_solicitud(request):
 def detalle_solicitud(request, solicitud_id):
     solicitud = SolicitudCompra.objects.get(id=solicitud_id)
     detalles = InsumoSolicitud.objects.filter(solicitud=solicitud)
+    servicios = ServicioSolicitud.objects.filter(solicitud=solicitud)  # 👈 ESTA LÍNEA ES CLAVE
     productos = Producto.objects.filter(activo=True)
     subproductos = Subproducto.objects.filter(activo=True)
 
@@ -511,6 +527,7 @@ def detalle_solicitud(request, solicitud_id):
         'detalles': detalles,
         'productos': productos,
         'subproductos': subproductos,
+        'servicios': servicios,
     })
 
 def obtener_subproductos(request, producto_id):
@@ -848,6 +865,40 @@ def insumos_disponibles_json(request):
         })
 
     return JsonResponse({'data': data})
+
+@csrf_exempt
+def agregar_servicio_solicitud(request):
+    if request.method == "POST":
+        try:
+            solicitud_id = request.POST.get("solicitud_id")
+            cantidad = int(request.POST.get("cantidad"))
+            concepto = request.POST.get("concepto")
+            renglon = request.POST.get("renglon")
+            unidad_medida = request.POST.get("unidad_medida")
+            caracteristica_especial = request.POST.get("caracteristica_especial", "").strip()
+
+            solicitud = SolicitudCompra.objects.get(id=solicitud_id)
+
+            # Crear el servicio con todos los campos
+            servicio = Servicio.objects.create(
+                concepto=concepto.strip(),
+                renglon=renglon.strip(),
+                caracteristica_especial=caracteristica_especial or None,
+                unidad_medida=unidad_medida.strip(),
+            )
+
+            ServicioSolicitud.objects.create(
+                solicitud=solicitud,
+                servicio=servicio,
+                cantidad=cantidad,
+            )
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Método no permitido"})
+
 
 
 @csrf_exempt

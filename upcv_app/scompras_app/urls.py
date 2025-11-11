@@ -20,6 +20,8 @@ urlpatterns = [
     path('catalogo-insumos/', views.catalogo_insumos_view, name='catalogo_insumos_view'),  
     path('insumos-json/', views.insumos_json, name='insumos_json'),
     path('agregar-insumo-solicitud/', views.agregar_insumo_solicitud, name='agregar_insumo_solicitud'),
+    path('eliminar-servicio/<int:servicio_id>/', views.eliminar_servicio_solicitud, name='eliminar_servicio_solicitud'),
+
     
     
 
@@ -48,6 +50,8 @@ urlpatterns = [
     path('finalizar_solicitud/', views.finalizar_solicitud, name='finalizar_solicitud'),
     path('rechazar_solicitud/', views.rechazar_solicitud, name='rechazar_solicitud'),
     path('solicitud/<int:solicitud_id>/generar_pdf/', views.generar_pdf_solicitud, name='generar_pdf_solicitud'),
+    path('agregar-servicio-solicitud/', views.agregar_servicio_solicitud, name='agregar_servicio_solicitud'),
+
 
 
     path('insumos-disponibles-json/', views.insumos_disponibles_json, name='insumos_disponibles_json'),

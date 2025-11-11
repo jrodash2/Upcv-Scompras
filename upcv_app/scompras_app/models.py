@@ -160,6 +160,29 @@ class InsumoSolicitud(models.Model):
     class Meta:
         unique_together = ('solicitud', 'insumo')  # para evitar duplicados
 
+# === NUEVO MODELO DE SERVICIOS ===
+class Servicio(models.Model):
+    concepto = models.CharField(max_length=500)
+    renglon = models.CharField(max_length=100)
+    caracteristica_especial = models.TextField(blank=True, null=True)
+    unidad_medida = models.CharField(max_length=100)
+    fecha_actualizacion = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.concepto} ({self.renglon}) - {self.unidad_medida}"
+
+
+# === RELACIÓN ENTRE SOLICITUD Y SERVICIO ===
+class ServicioSolicitud(models.Model):
+    solicitud = models.ForeignKey(SolicitudCompra, on_delete=models.CASCADE, related_name='servicios_solicitud')
+    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
+    cantidad = models.PositiveIntegerField(default=1)
+    observacion = models.TextField(blank=True, null=True)
+
+
+    def __str__(self):
+        return f"Servicio {self.servicio.concepto} en {self.solicitud}"
+
     
 
 class Producto(models.Model):
