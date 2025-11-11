@@ -141,7 +141,7 @@
         <!-- Línea divisoria -->
         <tr>
           <td>
-            <span style="display: block; background: rgba(82, 82, 108, 0.3); height: 1px; width: 100%; margin-bottom:20px;"></span>
+            <span style="display: block; background: rgba(82, 82, 108, 0.3); height: 1px; width: 150%; margin-bottom:20px;"></span>
           </td>
         </tr>
 
@@ -199,42 +199,42 @@
     color: #1e0551;
     font-weight: 600;
   }
+  
 </style>
-
 
 <table id="tabla-insumos-agregados">
   <thead>
     <tr>
-      <th>Cantidad Solicitada</th>
-      <th>Renglón</th>
-      <th>Código Insumo</th>
-      <th>Nombre</th>
-      <th>Características</th>
-      <th>Característica Especial</th>
-      <th>Presentación</th>
-      <th>Cantidad Unidad Presentación</th>
-      <th>Código Presentación</th>
-      <th>Acción</th>
+      <th style="font-size:12px;">Cantidad Solicitada</th>
+      <th style="font-size:12px;">Renglón</th>
+      <th style="font-size:12px;">Código Insumo</th>
+      <th style="font-size:12px;">Nombre</th>
+      <th style="font-size:12px;">Características</th>
+      <th style="font-size:12px;">Característica Especial</th>
+      <th style="font-size:12px;">Presentación</th>
+      <th style="font-size:12px;">Cantidad Unidad Presentación</th>
+      <th style="font-size:12px;">Código Presentación</th>
+      <th style="font-size:12px;">Acción</th>
     </tr>
   </thead>
   <tbody>
     {% if detalles or servicios %}
       {% for detalle in detalles %}
         <tr data-id="{{ detalle.id }}">
-          <td>{{ detalle.cantidad }}</td>
-          <td>{{ detalle.insumo.renglon }}</td>
-          <td>{{ detalle.insumo.codigo_insumo }}</td>
-          <td>{{ detalle.insumo.nombre }}</td>
-          <td>{{ detalle.insumo.caracteristicas|default:"-" }}</td>
-          <td>{{ detalle.caracteristica_especial|default:"-" }}</td>
-          <td>{{ detalle.insumo.nombre_presentacion }}</td>
-          <td>{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
-          <td>{{ detalle.insumo.codigo_presentacion }}</td>
-          <td>
+          <td style="font-size:10px;">{{ detalle.cantidad }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.renglon }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.codigo_insumo }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.nombre }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.caracteristicas|default:"-" }}</td>
+          <td style="font-size:10px;">{{ detalle.caracteristica_especial|default:"-" }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.nombre_presentacion }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.cantidad_unidad_presentacion }}</td>
+          <td style="font-size:10px;">{{ detalle.insumo.codigo_presentacion }}</td>
+          <td style="font-size:10px;">
             {% if solicitud.estado != 'Finalizada' and solicitud.estado != 'Rechazada' %}
               <button type="button" class="btn-eliminar"
                       data-id="{{ detalle.id }}"
-                      style="background:#0068ab;color:white;border:none;border-radius:5px;padding:5px 10px;">
+                      style="background:#0068ab;color:white;border:none;border-radius:5px;padding:5px 10px;font-size:13px;">
                 Eliminar
               </button>
             {% endif %}
@@ -244,20 +244,32 @@
 
       {% for servicio in servicios %}
         <tr data-id="{{ servicio.id }}">
-          <td>{{ servicio.cantidad|default:0 }}</td>
-          <td>{{ servicio.servicio.renglon|default:"" }}</td>
-          <td>—</td>
-          <td>{{ servicio.servicio.concepto|default:"" }}</td>
-          <td>—</td>
-          <td>{{ servicio.servicio.caracteristica_especial|default:"" }}</td>
-          <td>{{ servicio.servicio.unidad_medida|default:"" }}</td>
-          <td>0</td>
-          <td>—</td>
-          <td>
+          <td style="font-size:10px;">{{ servicio.cantidad|default:0 }}</td>
+          <td style="font-size:10px;">{{ servicio.servicio.renglon|default:"" }}</td>
+          <td style="font-size:10px;">—</td>
+          <td style="font-size:10px;">
+            {% if servicio.servicio.concepto %}
+              <ul style="margin:0; padding-left:18px; font-size:10px;">
+                {% for linea in servicio.servicio.concepto.splitlines %}
+                  {% if linea.strip %}
+                    <li>{{ linea }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td style="font-size:10px;">—</td>
+          <td style="font-size:10px;">{{ servicio.servicio.caracteristica_especial|default:"" }}</td>
+          <td style="font-size:10px;">{{ servicio.servicio.unidad_medida|default:"" }}</td>
+          <td style="font-size:10px;">0</td>
+          <td style="font-size:10px;">—</td>
+          <td style="font-size:10px;">
             {% if solicitud.estado != 'Finalizada' and solicitud.estado != 'Rechazada' %}
               <button type="button" class="btn-sm eliminar-servicio"
                       data-id="{{ servicio.id }}"
-                      style="background:#0068ab;color:white;border:none;border-radius:5px;padding:5px 10px;">
+                      style="background:#0068ab;color:white;border:none;border-radius:5px;padding:5px 10px;font-size:13px;">
                 Eliminar
               </button>
             {% endif %}
@@ -266,13 +278,14 @@
       {% endfor %}
     {% else %}
       <tr>
-        <td colspan="10" style="text-align:center; padding:18px; color:#666;">
+        <td colspan="10" style="text-align:center; padding:18px; color:#666; font-size:14px;">
           No hay insumos ni servicios agregados aún.
         </td>
       </tr>
     {% endif %}
   </tbody>
 </table>
+
 
 
           </td>
