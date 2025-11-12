@@ -334,7 +334,7 @@
   
   {# Mostrar "Configuración" solo a scompras #}
   {% if es_scompras %}
-    <li class="sidebar-list" ><i class="fa fa-thumb-tack"> </i><a class="sidebar-link " href="{% url 'scompras:dahsboard' %}">
+    <li class="sidebar-list" ><i class="fa fa-thumb-tack"> </i><a class="sidebar-link " href="{% url 'scompras:dashboard_usuario' %}">
                     <svg >
                       <use href="../assets/svg/icon-sprite.svg#stroke-home"></use>
                     </svg>
@@ -358,14 +358,14 @@
 
     </li>
          <li class="sidebar-list"><i class="fa fa-thumb-tack"></i>
-      <a class="sidebar-link " href="{% url 'scompras:lista_departamentos' %}">
+      <a class="sidebar-link " href="{% url 'scompras:detalle_seccion_usuario' %}">
         <svg >
-          <use href="{% url 'scompras:lista_departamentos' %}"></use>
+          <use href="{% url 'scompras:detalle_seccion_usuario' %}"></use>
         </svg>
         <svg class="fill-icon">
-          <use href="{% url 'scompras:lista_departamentos' %}"></use>
+          <use href="{% url 'scompras:detalle_seccion_usuario' %}"></use>
         </svg>
-        <span>Departamentos</span>
+        <span>Solicitudes</span>
       </a>
 
 

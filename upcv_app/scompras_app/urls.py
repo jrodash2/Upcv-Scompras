@@ -67,12 +67,12 @@ urlpatterns = [
     path('eliminar-asignacion/<int:usuario_id>/<int:departamento_id>/<int:seccion_id>/', views.eliminar_asignacion, name='eliminar_asignacion'),
     path('editar_institucion/', views.editar_institucion, name='editar_institucion'),
     # Cambiar contraseña
-    path('cambiar-contraseña/', auth_views.PasswordChangeView.as_view(
+    path('cambiar-contrasena/', auth_views.PasswordChangeView.as_view(
         template_name='scompras/password_change_form.html',
-        success_url='/cambiar-contraseña/hecho/'  # Redirección tras éxito
+        success_url='/cambiar-contrasena/hecho/'  # Redirección tras éxito
     ), name='password_change'),
 
-    path('cambiar-contraseña/hecho/', auth_views.PasswordChangeDoneView.as_view(
+    path('cambiar-contrasena/hecho/', auth_views.PasswordChangeDoneView.as_view(
         template_name='scompras/password_change_done.html'
     ), name='password_change_done'),
     
