@@ -21,6 +21,8 @@ urlpatterns = [
     path('insumos-json/', views.insumos_json, name='insumos_json'),
     path('agregar-insumo-solicitud/', views.agregar_insumo_solicitud, name='agregar_insumo_solicitud'),
     path('eliminar-servicio/<int:servicio_id>/', views.eliminar_servicio_solicitud, name='eliminar_servicio_solicitud'),
+    path('detalle-seccion-usuario/', views.detalle_seccion_usuario, name='detalle_seccion_usuario'),
+    path('dashboard-usuario/', views.dashboard_usuario, name='dashboard_usuario'),
 
     
     

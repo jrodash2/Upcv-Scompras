@@ -829,6 +829,7 @@ $('#btnLimpiarFiltros').on('click', function () {
                     appendInsumoToAgregados(response.insumo, response.detalle_id);
                     tablaInsumos.ajax.reload(null, false);
                     btn.text('Agregado').css('background', '#6c757d');
+                     setTimeout(() => location.reload(), 10);
                 } else {
                     showModalAlert('Error: ' + response.error, 'No se pudo agregar');
                     btn.prop('disabled', false).text('Agregar');

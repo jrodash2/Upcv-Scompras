@@ -236,6 +236,56 @@ def detalle_seccion(request, departamento_id, seccion_id):
     return render(request, 'scompras/detalle_seccion.html', context)
 
 
+@login_required
+def detalle_seccion_usuario(request):
+    user = request.user
+
+    # Validar si pertenece al grupo "scompras"
+    if not user.groups.filter(name='scompras').exists():
+        return render(request, 'scompras/403.html', status=403)
+
+    # Buscar la asignación del usuario a una sección
+    asignacion = UsuarioDepartamento.objects.filter(usuario=user).select_related('departamento', 'seccion').first()
+    
+    if not asignacion or not asignacion.seccion:
+        messages.warning(request, "No tienes asignada ninguna sección.")
+        return render(request, 'scompras/sin_seccion.html')
+
+    seccion = asignacion.seccion
+    departamento = asignacion.departamento
+
+    # Formulario para crear solicitudes
+    if request.method == 'POST':
+        form = SolicitudCompraFormcrear(request.POST)
+        if form.is_valid():
+            solicitud = form.save(commit=False)
+            solicitud.usuario = user
+            solicitud.departamento = departamento
+            solicitud.seccion = seccion
+            solicitud.save()
+            messages.success(request, "Solicitud creada exitosamente.")
+            return redirect('scompras:detalle_seccion_usuario')
+        else:
+            print(form.errors)
+            messages.error(request, "Por favor corrige los errores en el formulario.")
+    else:
+        form = SolicitudCompraFormcrear()
+
+    # Datos a mostrar
+    solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')[:10]
+    todas_solicitudes = SolicitudCompra.objects.filter(seccion=seccion).order_by('-fecha_solicitud')
+    secciones = departamento.secciones.filter(activo=True)
+
+    context = {
+        'seccion': seccion,
+        'departamento': departamento,
+        'form': form,
+        'solicitudes': solicitudes,
+        'todas_solicitudes': todas_solicitudes,
+        'secciones': secciones,
+    }
+
+    return render(request, 'scompras/detalle_seccion_usuario.html', context)
 
 
 def ajax_cargar_subproductos(request):
@@ -705,6 +755,64 @@ def dahsboard(request):
 
     return render(request, 'scompras/dahsboard.html', context)
 
+
+from django.db.models import Count
+from django.db.models.functions import ExtractYear, ExtractMonth
+from datetime import date
+
+@login_required
+def dashboard_usuario(request):
+    user = request.user
+
+    asignacion = (
+        UsuarioDepartamento.objects
+        .filter(usuario=user)
+        .select_related('seccion', 'departamento')
+        .first()
+    )
+
+    if not asignacion or not asignacion.seccion:
+        return render(request, 'scompras/sin_seccion.html', {
+            'mensaje': 'No tienes asignada ninguna sección.'
+        })
+
+    seccion = asignacion.seccion
+
+    # 🔹 Agrupar solicitudes por año y mes (una sola consulta)
+    solicitudes_por_anio_mes = (
+        SolicitudCompra.objects
+        .filter(seccion=seccion)
+        .annotate(
+            anio=ExtractYear('fecha_solicitud'),
+            mes=ExtractMonth('fecha_solicitud')
+        )
+        .values('anio', 'mes')
+        .annotate(total=Count('id'))
+        .order_by('anio', 'mes')
+    )
+
+    # 🔹 Años disponibles (por si quieres filtros o mostrar en el dashboard)
+    anios_disponibles = (
+        SolicitudCompra.objects
+        .filter(seccion=seccion)
+        .annotate(anio=ExtractYear('fecha_solicitud'))
+        .values('anio')
+        .distinct()
+        .order_by('anio')
+    )
+    anios_list = [a['anio'] for a in anios_disponibles]
+
+    context = {
+        'seccion': seccion,
+        'departamento': asignacion.departamento,
+        'solicitudes_por_anio_mes': list(solicitudes_por_anio_mes),
+        'anios': anios_list,
+    }
+
+    return render(request, 'scompras/dashboard_usuario.html', context)
+
+
+
 def acceso_denegado(request, exception=None):
     return render(request, 'scompras/403.html', status=403)
 
@@ -796,7 +904,7 @@ def signin(request):
                 elif g.name == 'Departamento':
                     return redirect('scompras:crear_requerimiento')
                 elif g.name == 'scompras':
-                    return redirect('scompras:dahsboard')
+                    return redirect('scompras:dashboard_usuario')
             # Si no se encuentra el grupo adecuado, se redirige a una página por defecto
             return redirect('dahsboard')
         else:
