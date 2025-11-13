@@ -120,12 +120,20 @@ def crear_perfil_usuario(sender, instance, created, **kwargs):
     if created and not hasattr(instance, 'perfil'):
         Perfil.objects.create(user=instance)
 
-# Señal opcional: Guardar perfil cuando el usuario se guarda
 @receiver(post_save, sender=User)
 def guardar_perfil_usuario(sender, instance, **kwargs):
-    if hasattr(instance, 'perfil'):
-        instance.perfil.save()
-     
+    from django.db.utils import ProgrammingError, OperationalError
+    from scompras_app.models import Perfil
+
+    try:
+        if hasattr(instance, 'perfil'):
+            instance.perfil.save()
+        else:
+            Perfil.objects.get_or_create(user=instance)
+    except (ProgrammingError, OperationalError):
+        # Si la tabla aún no existe (por ejemplo al migrar o primera conexión)
+        pass
+
         
 
 # Modelo de Insumo (para la importación de datos desde Excel)

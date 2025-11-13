@@ -67,7 +67,30 @@ from django.db.models.functions import ExtractYear, ExtractMonth
 from datetime import date
 from xhtml2pdf import pisa
 from io import BytesIO
+from django.contrib.auth.backends import ModelBackend
+from django.db import connections
 
+
+class TicketsAuthBackend(ModelBackend):
+    """
+    Backend que permite autenticar usuarios desde la base de datos de Tickets.
+    """
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        try:
+            # Conexión al alias 'tickets_db'
+            with connections['tickets_db'].cursor() as cursor:
+                user = User.objects.using('tickets_db').get(username=username)
+                if user.check_password(password) and user.is_active:
+                    return user
+        except User.DoesNotExist:
+            return None
+        return None
+
+    def get_user(self, user_id):
+        try:
+            return User.objects.using('tickets_db').get(pk=user_id)
+        except User.DoesNotExist:
+            return None
 
 @login_required
 @grupo_requerido('Administrador')
@@ -88,40 +111,66 @@ def editar_institucion(request):
 
 from django.db import IntegrityError
 
+from scompras_app.models_empleados import Empleado  # 🔹 modelo de empleados (Ticktes)
+
+# ... imports iguales
+from scompras_app.models_empleados import Empleado
+
 @login_required
 @grupo_requerido('Administrador', 'scompras')
-@user_passes_test(lambda u: u.is_superuser or u.groups.filter(name='Administrador').exists())
 def asignar_departamento_usuario(request):
+
     if request.method == 'POST':
         form = UsuarioDepartamentoForm(request.POST)
         if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, 'Departamento asignado correctamente al usuario.')
-                return redirect('scompras:asignar_departamento')
-            except IntegrityError:
-                messages.error(request, 'Esta asignación usuario-departamento-sección ya existe.')
+            UsuarioDepartamento.objects.create(
+                usuario_id=form.cleaned_data['usuario'].id,   # ← solo el ID!
+                departamento=form.cleaned_data['departamento'],
+                seccion=form.cleaned_data['seccion']
+            )
+            messages.success(request, "Departamento asignado correctamente")
+            return redirect("scompras:asignar_departamento")
         else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
+            messages.error(request, "Corrige los errores del formulario.")
     else:
         form = UsuarioDepartamentoForm()
 
-    asignaciones = UsuarioDepartamento.objects.select_related('usuario', 'departamento', 'seccion')
-    usuarios_con_departamentos = defaultdict(list)
-    for asignacion in asignaciones:
-        usuarios_con_departamentos[asignacion.usuario].append({
-            'departamento': asignacion.departamento,
-            'seccion': asignacion.seccion,
+    # Asignaciones
+    asignaciones = UsuarioDepartamento.objects.select_related('departamento', 'seccion')
+
+    # Mapa empleados
+    empleados_map = {
+        e.user_id: e for e in Empleado.objects.using('tickets_db').all()
+    }
+
+    filas = []
+    agrupado = {}
+
+    for a in asignaciones:
+        agrupado.setdefault(a.usuario_id, []).append(a)
+
+    for uid, asigns in agrupado.items():
+        user = User.objects.using('tickets_db').filter(id=uid).first()
+        filas.append({
+            'usuario': user,
+            'empleado': empleados_map.get(uid),
+            'asignaciones': asigns
         })
 
-    context = {
-        'form': form,
-        'usuarios_con_departamentos': usuarios_con_departamentos.items(),
-    }
+    return render(request, "scompras/asignar_departamento.html", {
+        "form": form,
+        "filas": filas
+    })
+
     return render(request, 'scompras/asignar_departamento.html', context)
 
 
+
+
 def eliminar_asignacion(request, usuario_id, departamento_id, seccion_id):
+    """
+    Elimina una asignación usuario-departamento-sección.
+    """
     if request.method == 'POST':
         asignacion = get_object_or_404(
             UsuarioDepartamento,
@@ -139,9 +188,12 @@ def eliminar_asignacion(request, usuario_id, departamento_id, seccion_id):
 @login_required
 @require_GET
 def cargar_secciones(request):
+    """
+    Carga dinámica de secciones por departamento.
+    """
     departamento_id = request.GET.get('departamento_id')
     secciones = Seccion.objects.filter(departamento_id=departamento_id).values('id', 'nombre').order_by('nombre')
-    return JsonResponse(list(secciones), safe=False)
+    return JsonResponse({'secciones': list(secciones)}, safe=False)
 
 def ajax_cargar_secciones(request):
     departamento_id = request.GET.get('departamento_id')
@@ -906,7 +958,7 @@ def signin(request):
                 elif g.name == 'scompras':
                     return redirect('scompras:dashboard_usuario')
             # Si no se encuentra el grupo adecuado, se redirige a una página por defecto
-            return redirect('dahsboard')
+            return redirect('scompras:signin')
         else:
             # Si el formulario no es válido, se retorna con el error
             return render(request, 'scompras/login.html', {

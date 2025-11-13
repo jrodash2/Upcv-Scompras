@@ -157,13 +157,19 @@
 <li class="profile-nav onhover-dropdown">
   <div class="d-flex align-items-center">
     <div style="width: 36px; height: 36px;">
-      {% if user.perfil.foto %}
-        <img src="{{ user.perfil.foto.url }}" alt="Foto de perfil"
-             style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-      {% else %}
-        <img src="{% static 'assets/images/dashboard/profile2.png' %}" alt="Sin foto"
-             style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-      {% endif %}
+{% if empleado_foto_url %}
+  <img src="{{ empleado_foto_url }}"
+       style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+{% else %}
+  <img src="{% static 'assets/images/dashboard/profile2.png' %}"
+       style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+{% endif %}
+
+
+
+
+
+
     </div>
     <div class="d-none d-xxl-block ms-2">
       <div class="d-flex align-items-center gap-2">

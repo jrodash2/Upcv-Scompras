@@ -1,4 +1,6 @@
 {% extends 'scompras/base.html' %}
+{% load custom_tags %}
+
 {% load static %}
 {% block content %}
 
@@ -62,42 +64,33 @@
               {% endif %}
 
               <!-- Formulario de asignación -->
-              <form method="POST">
-                {% csrf_token %}
-                <div class="row">
-                  <div class="col-md-4">
-                    <div class="form-group">
-                      <label for="{{ form.usuario.id_for_label }}">Usuario</label>
-                      {{ form.usuario }}
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="form-group">
-                      <label for="{{ form.departamento.id_for_label }}">Departamento</label>
-                      {{ form.departamento }}
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="form-group">
-                      <label for="id_seccion">Sección</label>
-                      <select id="id_seccion" name="seccion" class="form-control">
-                        <option value="">---------</option>
-                        {% if form.seccion.value %}
-                          {% with selected_seccion=form.seccion.value %}
-                            {% for opcion in form.seccion.field.queryset %}
-                              {% if opcion.pk|stringformat:"s" == selected_seccion|stringformat:"s" %}
-                                <option value="{{ opcion.pk }}" selected>{{ opcion.nombre }}</option>
-                              {% endif %}
-                            {% endfor %}
-                          {% endwith %}
-                        {% endif %}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div class="form-footer text-end mt-3">
-                  <button class="btn btn-primary" type="submit">Asignar Departamento</button>
-                </div>
+             <form method="POST">
+  {% csrf_token %}
+  <div class="row">
+    <div class="col-md-4">
+      <div class="form-group">
+        <label for="{{ form.usuario.id_for_label }}">Usuario</label>
+        {{ form.usuario }}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="form-group">
+        <label for="{{ form.departamento.id_for_label }}">Departamento</label>
+        {{ form.departamento }}  {# <-- volver a mostrar el campo de formulario #}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="form-group">
+        <label for="{{ form.seccion.id_for_label }}">Sección</label>
+        {{ form.seccion }}
+      </div>
+    </div>
+  </div>
+  <div class="form-footer text-end mt-3">
+    <button class="btn btn-primary" type="submit">Asignar Departamento</button>
+  </div>
+</form>
+
               </form>
 
               <div class="mt-4">
@@ -113,49 +106,59 @@
                         <th></th>
                       </tr>
                     </thead>
-                    <tbody>
-                    {% for usuario, asignaciones in usuarios_con_departamentos %}
-                      <tr>
-                        <td>{{ usuario.id }}</td>
-                        <td>{{ usuario.username }}</td>
-                        <td>
-                          <ul>
-                            {% for asignacion in asignaciones %}
-                              <li>{{ asignacion.departamento.nombre }}</li>
-                            {% endfor %}
-                          </ul>
-                        </td>
-                        <td>
-                          <ul>
-                            {% for asignacion in asignaciones %}
-                              <li>{% if asignacion.seccion %}{{ asignacion.seccion.nombre }}{% else %}-{% endif %}</li>
-                            {% endfor %}
-                          </ul>
-                        </td>
-                        <td>
-                          <ul>
-                            {% for asignacion in asignaciones %}
-                              <li>
-                                <button type="button"
-                                        class="btn btn-link p-0 text-danger btn-eliminar"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#confirmDeleteModal"
-                                        data-usuario-id="{{ usuario.id }}"
-                                        data-departamento-id="{{ asignacion.departamento.id }}"
-                                        data-seccion-id="{% if asignacion.seccion %}{{ asignacion.seccion.id }}{% else %}0{% endif %}">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                                       viewBox="0 0 16 16">
-                                    <path
-                                      d="M4.646 4.646a.5.5 0 011 0L8 7.293l2.354-2.647a.5.5 0 11.708.708L8.707 8l2.647 2.354a.5.5 0 01-.708.708L8 8.707l-2.354 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.646a.5.5 0 010-.708z" />
-                                  </svg>
-                                </button>
-                              </li>
-                            {% endfor %}
-                          </ul>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                    </tbody>
+<tbody>
+{% for fila in filas %}
+  <tr>
+    <td>{{ fila.usuario.id }}</td>
+    <td>
+      {% if fila.empleado %}
+        {% if fila.empleado.imagen %}
+          <img src="{{ fila.empleado.imagen.url }}" alt="Foto" width="40" class="rounded-circle me-2">
+        {% endif %}
+        {{ fila.empleado.nombres }} {{ fila.empleado.apellidos }}
+      {% else %}
+        {{ fila.usuario.username }}
+      {% endif %}
+    </td>
+    <td>
+      <ul>
+        {% for asignacion in fila.asignaciones %}
+          <li>{{ asignacion.departamento.nombre }}</li>
+        {% endfor %}
+      </ul>
+    </td>
+    <td>
+      <ul>
+        {% for asignacion in fila.asignaciones %}
+          <li>{% if asignacion.seccion %}{{ asignacion.seccion.nombre }}{% else %}-{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </td>
+    <td>
+      <ul>
+        {% for asignacion in fila.asignaciones %}
+          <li>
+            <button type="button"
+              class="btn btn-link p-0 text-danger btn-eliminar"
+              data-bs-toggle="modal"
+              data-bs-target="#confirmDeleteModal"
+              data-usuario-id="{{ fila.usuario.id }}"
+              data-departamento-id="{{ asignacion.departamento.id }}"
+              data-seccion-id="{% if asignacion.seccion %}{{ asignacion.seccion.id }}{% else %}0{% endif %}">
+              <!-- ícono -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                   viewBox="0 0 16 16">
+                <path d="M4.646 4.646a.5.5 0 011 0L8 7.293l2.354-2.647a.5.5 0 11.708.708L8.707 8l2.647 2.354a.5.5 0 01-.708.708L8 8.707l-2.354 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.646a.5.5 0 010-.708z"/>
+              </svg>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    </td>
+  </tr>
+{% endfor %}
+</tbody>
+
                     <tfoot>
                       <tr>
                         <th>ID</th>

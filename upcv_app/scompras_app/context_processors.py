@@ -38,3 +38,33 @@ def datos_institucion(request):
     return {
         'institucion': institucion
     }
+
+from django.conf import settings
+from scompras_app.models_empleados import Empleado
+
+def empleado_context(request):
+    if not request.user.is_authenticated:
+        return {}
+
+    empleado = Empleado.objects.using('tickets_db').filter(user=request.user).first()
+
+    foto_url = None
+    if empleado and empleado.imagen:
+        raw_url = empleado.imagen.url  # Django genera /media/card_images/archivo.jpg
+
+        # Si no incluye /media/
+        if not raw_url.startswith('/media/'):
+            raw_url = f"/media/{raw_url.lstrip('/')}"
+
+        foto_url = f"{settings.MEDIA_SERVER_TICKETS}{raw_url}"
+
+    return {
+        "empleado": empleado,
+        "empleado_foto_url": foto_url
+    }
+
+
+from django.conf import settings
+
+def media_server_tickets(request):
+    return {'MEDIA_SERVER_TICKETS': settings.MEDIA_SERVER_TICKETS}

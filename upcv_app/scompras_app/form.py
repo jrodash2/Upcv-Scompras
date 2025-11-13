@@ -279,32 +279,51 @@ class UserForm(forms.ModelForm):
         return user
 
             
-class UsuarioDepartamentoForm(forms.ModelForm):
-    departamento = forms.ModelChoiceField(queryset=Departamento.objects.all(), required=True)
-    seccion = forms.ModelChoiceField(queryset=Seccion.objects.none(), required=False)
+from django import forms
+from django.contrib.auth.models import User
+from scompras_app.models import UsuarioDepartamento, Departamento, Seccion
 
-    class Meta:
-        model = UsuarioDepartamento
-        fields = ['usuario', 'departamento', 'seccion']
+
+class UsuarioDepartamentoForm(forms.Form):
+    usuario = forms.ModelChoiceField(
+        queryset=User.objects.all().order_by('username'),
+        label="Usuario (Tickets)",
+        required=True
+    )
+
+
+    departamento = forms.ModelChoiceField(
+        queryset=Departamento.objects.all(),
+        required=True
+    )
+
+    seccion = forms.ModelChoiceField(
+        queryset=Seccion.objects.none(),
+        required=False
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Añadir la clase form-control a todos los campos
-        for field_name, field in self.fields.items():
+        # Etiqueta bonita
+        self.fields['usuario'].label_from_instance = (
+            lambda u: f"{u.first_name} {u.last_name} ({u.username})"
+        )
+
+        # Estilos
+        for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})
 
-        # Cargar queryset para secciones según departamento
+        # Cargar secciones según dep seleccionado
         if 'departamento' in self.data:
             try:
-                departamento_id = int(self.data.get('departamento'))
-                self.fields['seccion'].queryset = Seccion.objects.filter(departamento_id=departamento_id).order_by('nombre')
-            except (ValueError, TypeError):
-                self.fields['seccion'].queryset = Seccion.objects.none()
-        elif self.instance.pk and self.instance.departamento:
-            self.fields['seccion'].queryset = Seccion.objects.filter(departamento=self.instance.departamento).order_by('nombre')
-        else:
-            self.fields['seccion'].queryset = Seccion.objects.none()
+                dep_id = int(self.data.get('departamento'))
+                self.fields['seccion'].queryset = Seccion.objects.filter(
+                    departamento_id=dep_id
+                ).order_by("nombre")
+            except:
+                pass
+
 
         
 class PerfilForm(forms.ModelForm):

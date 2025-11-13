@@ -69,6 +69,7 @@ TEMPLATES = [
                 'scompras_app.context_processors.frase_del_dia',  # Agregar el context processor personalizado
                 'scompras_app.context_processors.grupo_usuario',
                 'scompras_app.context_processors.datos_institucion',
+                'scompras_app.context_processors.media_server_tickets',
 
             ],
         },
@@ -89,15 +90,31 @@ WSGI_APPLICATION = 'upcv_app.wsgi.application'
 # }
 
 DATABASES = {
-    'default': {
+    'default': {  # Tu BD actual, sin cambios
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Scompras',  # Cambia esto por el nombre de tu base de datos
+        'NAME': 'Scompras',
         'USER': 'postgres',
-        'PASSWORD': 'Jrodash2#',  # La contraseña que configuraste
+        'PASSWORD': 'Jrodash2#',
         'HOST': 'localhost',
-        'PORT': '5432',  # O el puerto que hayas configurado
-    }
+        'PORT': '5432',
+    },
+    'tickets_db': {  # Nueva conexión de solo lectura
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'Tickets',
+        'USER': 'postgres',
+        'PASSWORD': 'Jrodash2#',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    },
 }
+
+AUTHENTICATION_BACKENDS = [
+    'scompras_app.backends.TicketsAuthBackend',  # Primero busca en la BD de Tickets
+    'django.contrib.auth.backends.ModelBackend',  # Luego en la local (respaldo)
+]
+
+DATABASE_ROUTERS = ['scompras_app.dbrouters.TicketsRouter']
+
 
 
 
@@ -160,6 +177,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'  # La URL pública donde los archivos de medios serán accesibles
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # El directorio donde se scomprasan los archivos subidos
 
+# Servidor donde corre TICKETS
+MEDIA_SERVER_TICKETS = "http://127.0.0.1:8000"
 
 LOGIN_URL = '/no-autorizado/'  # o una ruta válida a la que redirigir
 
